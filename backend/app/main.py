@@ -35,6 +35,7 @@ app.include_router(network_router)
 app.include_router(ai_router)
 app.include_router(websocket_router)
 
+
 @app.get("/")
 def read_root():
     return {

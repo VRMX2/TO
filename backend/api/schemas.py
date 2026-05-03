@@ -112,6 +112,21 @@ class DefenseRecommendationResult(BaseModel):
     all_recommendations: List[DefenseRecommendation]
 
 
+# ── Report Schemas ────────────────────────────────────────────────────
+
+class ReportRequest(BaseModel):
+    nash_p: List[float]
+    nash_q: List[float]
+    game_value: float
+    pure_nash: List[Dict[str, Any]] = []
+    scenario: str = "Standard 4×4 Zero-Sum"
+    rounds: int = 50
+
+class ReportResult(BaseModel):
+    briefing: str
+    threat: Dict[str, Any]
+
+
 # ── Shared ────────────────────────────────────────────────────────────
 
 class HealthResponse(BaseModel):

@@ -142,7 +142,7 @@ Current simulation state (Round ${round}/20):
 
 Give a concise 2-3 sentence tactical analysis: what just happened, whether either player deviated from Nash equilibrium, and one specific recommendation for the defender next round. Be precise about game theory concepts. No bullet points.`;
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('/api/claude/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

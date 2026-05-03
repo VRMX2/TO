@@ -51,88 +51,30 @@ function findPureNash(matrix) {
 /* ══════════════════════════════════════════════════
    CLAUDE AI REPORT GENERATOR
 ══════════════════════════════════════════════════ */
-async function generateAIReport(params) {
+/* Single backend call — proxied via Vite /api → http://localhost:8000 */
+async function generateFullReport(params) {
   const { nash, pureNash, gameValue, scenario, rounds } = params;
 
-  const prompt = `You are a senior cybersecurity analyst writing an executive briefing on a completed game-theoretic security simulation. Be precise, academic, and strategic.
-
-SIMULATION DATA:
-- Scenario: ${scenario}
-- Rounds simulated: ${rounds}
-- Game Value (v*): ${gameValue.toFixed(4)}
-- Pure Nash Equilibria: ${pureNash.length === 0 ? 'None (fully mixed game)' : pureNash.map(n => `(A${n.row + 1}:${ATTACK_STRATEGIES[n.row]}, D${n.col + 1}:${DEFENSE_STRATEGIES[n.col]})`).join('; ')}
-
-MIXED NASH EQUILIBRIUM:
-Attacker mixed strategy σ*_A:
-${nash.p.map((prob, i) => `  - ${ATTACK_STRATEGIES[i]} (A${i + 1}): ${(prob * 100).toFixed(1)}%`).join('\n')}
-
-Defender mixed strategy σ*_D:
-${nash.q.map((prob, i) => `  - ${DEFENSE_STRATEGIES[i]} (D${i + 1}): ${(prob * 100).toFixed(1)}%`).join('\n')}
-
-PAYOFF MATRIX (Attacker's perspective):
-${PAYOFF.map((row, i) => `  ${ATTACK_STRATEGIES[i]}: [${row.join(', ')}]`).join('\n')}
-
-Write a structured executive security briefing with exactly these 5 sections. Use plain text only (no markdown). Keep each section focused and analytical.
-
-SECTION 1 - EXECUTIVE SUMMARY (3-4 sentences: key findings, game value interpretation, overall security posture)
-SECTION 2 - NASH EQUILIBRIUM INTERPRETATION (4-5 sentences: what the mixed strategies mean operationally, why the attacker allocates probability this way, what the defender must do)
-SECTION 3 - CRITICAL THREAT VECTORS (4-5 sentences: which attack strategies dominate, expected payoffs, highest-risk scenarios from the matrix)
-SECTION 4 - RECOMMENDED DEFENSE POSTURE (4-5 sentences: how the defender should allocate resources based on σ*_D, which defenses to prioritize and why)
-SECTION 5 - STRATEGIC CONCLUSION (3-4 sentences: long-term implications, whether current posture is sufficient, key takeaway for leadership)
-
-Format: Start each section with its title on its own line, then the content. No bullet points, no asterisks, just clean paragraphs.`;
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetch('http://localhost:8000/ai/generate-report', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      messages: [{ role: 'user', content: prompt }],
+      nash_p: nash.p,
+      nash_q: nash.q,
+      game_value: gameValue,
+      pure_nash: pureNash.map(n => ({ row: n.row, col: n.col })),
+      scenario,
+      rounds,
     }),
   });
 
-  const data = await response.json();
-  const text = data.content.map(b => b.text || '').join('');
-  return text;
-}
-
-async function generateThreatAssessment(params) {
-  const { nash, gameValue } = params;
-  const dominantAttack = nash.p.indexOf(Math.max(...nash.p));
-  const dominantDefense = nash.q.indexOf(Math.max(...nash.q));
-
-  const prompt = `You are a threat intelligence analyst. Based on this game-theoretic data, produce a concise threat assessment in JSON format only. No explanation, just valid JSON.
-
-Nash game value: ${gameValue.toFixed(4)}
-Dominant attacker strategy: ${ATTACK_STRATEGIES[dominantAttack]} with probability ${(nash.p[dominantAttack] * 100).toFixed(1)}%
-Dominant defender strategy: ${DEFENSE_STRATEGIES[dominantDefense]} with probability ${(nash.q[dominantDefense] * 100).toFixed(1)}%
-
-Return this exact JSON structure (fill in realistic values):
-{
-  "riskScore": <number 0-100>,
-  "riskLabel": "<CRITICAL|HIGH|MEDIUM|LOW>",
-  "attackerAdvantage": <number -100 to 100, positive means attacker wins>,
-  "convergenceQuality": "<STRONG|MODERATE|WEAK>",
-  "primaryThreat": "<one attack strategy name>",
-  "primaryMitigation": "<one defense strategy name>",
-  "confidenceLevel": <number 0-100>,
-  "keyInsight": "<one sentence, max 20 words>"
-}`;
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.detail || `Backend error ${response.status}`);
+  }
 
   const data = await response.json();
-  const raw = data.content.map(b => b.text || '').join('').replace(/```json|```/g, '').trim();
-  return JSON.parse(raw);
+  return { reportText: data.briefing, threatData: data.threat };
 }
 
 /* ══════════════════════════════════════════════════
@@ -159,20 +101,20 @@ export default function Report() {
     setGenerated(false);
 
     try {
-      setPhase('Analyzing Nash equilibrium data...');
-      const [report, threat] = await Promise.all([
-        generateAIReport({ nash: { p, q }, pureNash, gameValue: v, scenario, rounds }),
-        generateThreatAssessment({ nash: { p, q }, gameValue: v }),
-      ]);
+      setPhase('Contacting backend AI engine...');
+      const { reportText: report, threatData: threat } = await generateFullReport({
+        nash: { p, q }, pureNash, gameValue: v, scenario, rounds,
+      });
 
       setPhase('Compiling executive briefing...');
-      await new Promise(res => setTimeout(res, 600));
+      await new Promise(res => setTimeout(res, 400));
 
       setReportText(report);
       setThreatData(threat);
       setGenerated(true);
     } catch (err) {
-      setReportText('ERROR: Failed to generate report. Please check your connection and try again.');
+      console.error('Report generation error:', err);
+      setReportText('ERROR: ' + (err.message || 'Failed to generate report. Make sure the backend is running on port 8000.'));
     } finally {
       setGenerating(false);
       setPhase('');
