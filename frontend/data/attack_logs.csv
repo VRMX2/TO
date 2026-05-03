@@ -1,0 +1,5 @@
+timestamp,source_ip,target_node,attack_type,severity,status
+2026-05-03T09:41:05,192.168.1.45,N-03,DDoS,high,blocked
+2026-05-03T09:42:12,10.0.0.8,N-01,SQLi,medium,detected
+2026-05-03T09:45:33,172.16.0.5,N-05,Zero-Day,critical,breached
+2026-05-03T09:50:01,192.168.1.120,N-02,Phishing,low,blocked

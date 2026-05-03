@@ -1,0 +1,107 @@
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr 320px;
+  grid-template-rows: auto auto 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  height: 100vh;
+  max-width: 100vw;
+}
+
+/* Header spanning full width */
+.header-container {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.5rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+}
+
+/* Controls row spanning full width */
+.controls-row {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+}
+
+.controls-left, .controls-right, .controls-center {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* Select inputs in controls */
+.controls-row select {
+  background: var(--bg-base);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 0.5rem;
+  border-radius: 4px;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  outline: none;
+}
+
+/* Left Sidebar */
+.left-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+}
+
+/* Center Main Content */
+.main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow: hidden;
+}
+
+.network-canvas-container {
+  flex: 2;
+  min-height: 0; /* Important for flex child with overflow */
+}
+
+.convergence-container {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Right Sidebar */
+.right-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+}
+
+/* Specific Panel adjustments */
+.strategy-panel, .payoff-matrix, .nash-panel, .ai-monitor {
+  flex-shrink: 0;
+}
+
+.network-canvas-container, .convergence-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.network-canvas-container .panel-content, 
+.convergence-container .panel-content {
+  flex: 1;
+  position: relative;
+}
+
+/* Utility for filling height */
+.h-full {
+  height: 100%;
+}

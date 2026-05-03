@@ -1,0 +1,35 @@
+[
+  {
+    "id": "standard",
+    "name": "Standard 4x4",
+    "description": "Standard game theory matrix with balanced payoffs.",
+    "matrix": [
+      [5, 2, -1, 4],
+      [4, 6, 8, 3],
+      [-3, 1, 7, 2],
+      [2, -2, 5, 0]
+    ]
+  },
+  {
+    "id": "zero-sum",
+    "name": "Strict Zero-Sum",
+    "description": "A strict zero-sum scenario where attacker gain exactly equals defender loss.",
+    "matrix": [
+      [5, -2, -1, 4],
+      [4, 6, -8, 3],
+      [-3, 1, 7, 2],
+      [2, -2, 5, 0]
+    ]
+  },
+  {
+    "id": "advanced",
+    "name": "Advanced APT",
+    "description": "High stakes scenario with extreme payoffs for zero-day exploits.",
+    "matrix": [
+      [10, 5, -5, 2],
+      [3, 8, 1, -2],
+      [-2, 0, 9, 4],
+      [5, -1, 3, 6]
+    ]
+  }
+]
