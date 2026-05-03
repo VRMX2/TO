@@ -1,23 +1,680 @@
-import React from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import Header from '../components/Header';
-import { FileText } from 'lucide-react';
+import {
+  FileText, Brain, Download, RefreshCw, CheckCircle,
+  AlertTriangle, Shield, Zap, Target, Activity,
+  ChevronRight, Clock, BarChart2, Lock, Cpu
+} from 'lucide-react';
 
+/* ══════════════════════════════════════════════════
+   GAME-THEORY CONSTANTS (mirrors Simulation.jsx)
+══════════════════════════════════════════════════ */
+const PAYOFF = [
+  [5, 2, -1, 4],
+  [4, 6, 8, 3],
+  [-3, 1, 7, 2],
+  [2, -2, 5, 0],
+];
+const ATTACK_STRATEGIES = ['SQL Injection', 'DDoS Flood', 'Zero-Day Exploit', 'Phishing APT'];
+const DEFENSE_STRATEGIES = ['Firewall', 'Intrusion Det.', 'Patch System', 'Honey Pot'];
+
+function solveMixedNash(matrix) {
+  const m = matrix.length, n = matrix[0].length;
+  let p = Array(m).fill(1 / m), q = Array(n).fill(1 / n);
+  for (let it = 0; it < 4000; it++) {
+    const ap = p.map((_, i) => q.reduce((s, qj, j) => s + qj * matrix[i][j], 0));
+    const dp = q.map((_, j) => p.reduce((s, pi, i) => s + pi * matrix[i][j], 0));
+    const ma = p.reduce((s, pi, i) => s + pi * ap[i], 0);
+    const md = q.reduce((s, qj, j) => s + qj * dp[j], 0);
+    p = p.map((pi, i) => Math.max(1e-9, pi + 0.04 * (ap[i] - ma)));
+    q = q.map((qj, j) => Math.max(1e-9, qj - 0.04 * (dp[j] - md)));
+    const sp = p.reduce((a, b) => a + b, 0), sq = q.reduce((a, b) => a + b, 0);
+    p = p.map(v => v / sp); q = q.map(v => v / sq);
+  }
+  const v = p.reduce((s, pi, i) => s + q.reduce((ss, qj, j) => ss + pi * qj * matrix[i][j], 0), 0);
+  return { p, q, v };
+}
+
+function findPureNash(matrix) {
+  const m = matrix.length, n = matrix[0].length;
+  const result = [];
+  for (let r = 0; r < m; r++)
+    for (let c = 0; c < n; c++) {
+      const colMax = Math.max(...matrix.map(row => row[c]));
+      const rowMin = Math.min(...matrix[r]);
+      if (matrix[r][c] === colMax && matrix[r][c] === rowMin)
+        result.push({ row: r, col: c, value: matrix[r][c] });
+    }
+  return result;
+}
+
+/* ══════════════════════════════════════════════════
+   CLAUDE AI REPORT GENERATOR
+══════════════════════════════════════════════════ */
+async function generateAIReport(params) {
+  const { nash, pureNash, gameValue, scenario, rounds } = params;
+
+  const prompt = `You are a senior cybersecurity analyst writing an executive briefing on a completed game-theoretic security simulation. Be precise, academic, and strategic.
+
+SIMULATION DATA:
+- Scenario: ${scenario}
+- Rounds simulated: ${rounds}
+- Game Value (v*): ${gameValue.toFixed(4)}
+- Pure Nash Equilibria: ${pureNash.length === 0 ? 'None (fully mixed game)' : pureNash.map(n => `(A${n.row + 1}:${ATTACK_STRATEGIES[n.row]}, D${n.col + 1}:${DEFENSE_STRATEGIES[n.col]})`).join('; ')}
+
+MIXED NASH EQUILIBRIUM:
+Attacker mixed strategy σ*_A:
+${nash.p.map((prob, i) => `  - ${ATTACK_STRATEGIES[i]} (A${i + 1}): ${(prob * 100).toFixed(1)}%`).join('\n')}
+
+Defender mixed strategy σ*_D:
+${nash.q.map((prob, i) => `  - ${DEFENSE_STRATEGIES[i]} (D${i + 1}): ${(prob * 100).toFixed(1)}%`).join('\n')}
+
+PAYOFF MATRIX (Attacker's perspective):
+${PAYOFF.map((row, i) => `  ${ATTACK_STRATEGIES[i]}: [${row.join(', ')}]`).join('\n')}
+
+Write a structured executive security briefing with exactly these 5 sections. Use plain text only (no markdown). Keep each section focused and analytical.
+
+SECTION 1 - EXECUTIVE SUMMARY (3-4 sentences: key findings, game value interpretation, overall security posture)
+SECTION 2 - NASH EQUILIBRIUM INTERPRETATION (4-5 sentences: what the mixed strategies mean operationally, why the attacker allocates probability this way, what the defender must do)
+SECTION 3 - CRITICAL THREAT VECTORS (4-5 sentences: which attack strategies dominate, expected payoffs, highest-risk scenarios from the matrix)
+SECTION 4 - RECOMMENDED DEFENSE POSTURE (4-5 sentences: how the defender should allocate resources based on σ*_D, which defenses to prioritize and why)
+SECTION 5 - STRATEGIC CONCLUSION (3-4 sentences: long-term implications, whether current posture is sufficient, key takeaway for leadership)
+
+Format: Start each section with its title on its own line, then the content. No bullet points, no asterisks, just clean paragraphs.`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+
+  const data = await response.json();
+  const text = data.content.map(b => b.text || '').join('');
+  return text;
+}
+
+async function generateThreatAssessment(params) {
+  const { nash, gameValue } = params;
+  const dominantAttack = nash.p.indexOf(Math.max(...nash.p));
+  const dominantDefense = nash.q.indexOf(Math.max(...nash.q));
+
+  const prompt = `You are a threat intelligence analyst. Based on this game-theoretic data, produce a concise threat assessment in JSON format only. No explanation, just valid JSON.
+
+Nash game value: ${gameValue.toFixed(4)}
+Dominant attacker strategy: ${ATTACK_STRATEGIES[dominantAttack]} with probability ${(nash.p[dominantAttack] * 100).toFixed(1)}%
+Dominant defender strategy: ${DEFENSE_STRATEGIES[dominantDefense]} with probability ${(nash.q[dominantDefense] * 100).toFixed(1)}%
+
+Return this exact JSON structure (fill in realistic values):
+{
+  "riskScore": <number 0-100>,
+  "riskLabel": "<CRITICAL|HIGH|MEDIUM|LOW>",
+  "attackerAdvantage": <number -100 to 100, positive means attacker wins>,
+  "convergenceQuality": "<STRONG|MODERATE|WEAK>",
+  "primaryThreat": "<one attack strategy name>",
+  "primaryMitigation": "<one defense strategy name>",
+  "confidenceLevel": <number 0-100>,
+  "keyInsight": "<one sentence, max 20 words>"
+}`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+
+  const data = await response.json();
+  const raw = data.content.map(b => b.text || '').join('').replace(/```json|```/g, '').trim();
+  return JSON.parse(raw);
+}
+
+/* ══════════════════════════════════════════════════
+   MAIN REPORT COMPONENT
+══════════════════════════════════════════════════ */
 export default function Report() {
+  const [scenario, setScenario] = useState('Standard 4×4 Zero-Sum');
+  const [rounds, setRounds] = useState(50);
+  const [generating, setGenerating] = useState(false);
+  const [reportText, setReportText] = useState('');
+  const [threatData, setThreatData] = useState(null);
+  const [generated, setGenerated] = useState(false);
+  const [phase, setPhase] = useState('');
+  const [exportFormat, setExportFormat] = useState('txt');
+  const reportRef = useRef(null);
+
+  const { p, q, v } = solveMixedNash(PAYOFF);
+  const pureNash = findPureNash(PAYOFF);
+
+  const handleGenerate = useCallback(async () => {
+    setGenerating(true);
+    setReportText('');
+    setThreatData(null);
+    setGenerated(false);
+
+    try {
+      setPhase('Analyzing Nash equilibrium data...');
+      const [report, threat] = await Promise.all([
+        generateAIReport({ nash: { p, q }, pureNash, gameValue: v, scenario, rounds }),
+        generateThreatAssessment({ nash: { p, q }, gameValue: v }),
+      ]);
+
+      setPhase('Compiling executive briefing...');
+      await new Promise(res => setTimeout(res, 600));
+
+      setReportText(report);
+      setThreatData(threat);
+      setGenerated(true);
+    } catch (err) {
+      setReportText('ERROR: Failed to generate report. Please check your connection and try again.');
+    } finally {
+      setGenerating(false);
+      setPhase('');
+    }
+  }, [p, q, v, scenario, rounds]);
+
+  const handleExport = useCallback(() => {
+    if (!reportText) return;
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-');
+    const filename = `security-briefing-${timestamp}.${exportFormat}`;
+
+    let content = '';
+    if (exportFormat === 'txt') {
+      content = `EXECUTIVE SECURITY BRIEFING\n${'='.repeat(60)}\nGenerated: ${new Date().toLocaleString()}\nScenario: ${scenario} | Rounds: ${rounds}\nGame Value (v*): ${v.toFixed(4)}\n${'='.repeat(60)}\n\n${reportText}`;
+      if (threatData) {
+        content += `\n\n${'='.repeat(60)}\nTHREAT METRICS\n${'='.repeat(60)}\nRisk Score: ${threatData.riskScore}/100 (${threatData.riskLabel})\nAttacker Advantage: ${threatData.attackerAdvantage > 0 ? '+' : ''}${threatData.attackerAdvantage}\nPrimary Threat: ${threatData.primaryThreat}\nRecommended Mitigation: ${threatData.primaryMitigation}\nConfidence: ${threatData.confidenceLevel}%\nKey Insight: ${threatData.keyInsight}`;
+      }
+    } else if (exportFormat === 'json') {
+      content = JSON.stringify({
+        metadata: { generated: new Date().toISOString(), scenario, rounds, gameValue: v },
+        nashEquilibrium: { p, q, pureNash, gameValue: v },
+        threatAssessment: threatData,
+        executiveBriefing: reportText,
+      }, null, 2);
+    } else if (exportFormat === 'csv') {
+      const rows = [
+        ['Metric', 'Value'],
+        ['Scenario', scenario],
+        ['Rounds', rounds],
+        ['Game Value (v*)', v.toFixed(4)],
+        ['Risk Score', threatData?.riskScore ?? 'N/A'],
+        ['Risk Level', threatData?.riskLabel ?? 'N/A'],
+        ['Primary Threat', threatData?.primaryThreat ?? 'N/A'],
+        ['Primary Defense', threatData?.primaryMitigation ?? 'N/A'],
+        ...ATTACK_STRATEGIES.map((s, i) => [`Attacker σ*: ${s}`, `${(p[i] * 100).toFixed(2)}%`]),
+        ...DEFENSE_STRATEGIES.map((s, i) => [`Defender σ*: ${s}`, `${(q[i] * 100).toFixed(2)}%`]),
+      ];
+      content = rows.map(r => r.join(',')).join('\n');
+    }
+
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }, [reportText, threatData, exportFormat, scenario, rounds, p, q, v]);
+
+  /* Parse report into named sections */
+  const sections = React.useMemo(() => {
+    if (!reportText) return [];
+    const SECTION_TITLES = [
+      'EXECUTIVE SUMMARY',
+      'NASH EQUILIBRIUM INTERPRETATION',
+      'CRITICAL THREAT VECTORS',
+      'RECOMMENDED DEFENSE POSTURE',
+      'STRATEGIC CONCLUSION',
+    ];
+    const result = [];
+    for (let i = 0; i < SECTION_TITLES.length; i++) {
+      const title = SECTION_TITLES[i];
+      const start = reportText.indexOf(title);
+      if (start === -1) continue;
+      const nextStart = i + 1 < SECTION_TITLES.length
+        ? reportText.indexOf(SECTION_TITLES[i + 1])
+        : reportText.length;
+      const body = reportText.slice(start + title.length, nextStart === -1 ? undefined : nextStart).trim();
+      result.push({ title, body });
+    }
+    if (result.length === 0) result.push({ title: 'FULL REPORT', body: reportText });
+    return result;
+  }, [reportText]);
+
+  const sectionColors = ['cyan', 'amber', 'green', 'cyan', 'amber'];
+  const sectionIcons = [FileText, Target, AlertTriangle, Shield, CheckCircle];
+
   return (
     <div className="dashboard-layout">
       <Header />
-      <div className="main-content" style={{ gridColumn: '1 / -1', padding: '2rem' }}>
-        <div className="panel h-full" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
-          <FileText size={48} className="text-green" />
-          <h2 className="text-primary font-mono text-xl">Executive Briefing & Reports</h2>
-          <p className="text-secondary text-center max-w-lg">
-            Export comprehensive game-theoretic analysis and simulated attack outcomes to PDF, CSV, and JSON formats for security auditing.
-          </p>
-          <div style={{ marginTop: '2rem', padding: '1rem', border: '1px solid var(--accent-green)', borderRadius: '8px', background: 'rgba(0, 255, 102, 0.05)' }}>
-            <span className="text-green font-mono text-sm">NO REPORTS GENERATED YET</span>
+      <div style={{ gridColumn: '1/-1', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+
+        {/* Page Title */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <FileText size={22} style={{ color: 'var(--accent-green)' }} />
+            <div>
+              <h2 className="text-primary font-mono" style={{ fontSize: '1rem', margin: 0, letterSpacing: '0.1em' }}>
+                AI EXECUTIVE BRIEFING
+              </h2>
+              <p className="text-secondary" style={{ fontSize: '0.72rem', margin: 0, marginTop: 2 }}>
+                Claude-powered analysis · Game-theoretic security intelligence · Export-ready
+              </p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Brain size={13} style={{ color: 'var(--accent-amber)' }} />
+            <span className="font-mono" style={{ fontSize: '0.6rem', color: 'var(--accent-amber)' }}>
+              POWERED BY CLAUDE AI
+            </span>
           </div>
         </div>
+
+        {/* Top Row: Config + Nash Summary */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+
+          {/* Config Panel */}
+          <Panel color="cyan" title="REPORT CONFIGURATION" icon={<Cpu size={12} />}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+              <ConfigRow label="SCENARIO">
+                <select
+                  value={scenario}
+                  onChange={e => setScenario(e.target.value)}
+                  style={selectSt}
+                >
+                  <option>Standard 4×4 Zero-Sum</option>
+                  <option>Advanced APT Scenario</option>
+                  <option>Zero-Sum Symmetric</option>
+                </select>
+              </ConfigRow>
+              <ConfigRow label="ROUNDS">
+                <select
+                  value={rounds}
+                  onChange={e => setRounds(Number(e.target.value))}
+                  style={selectSt}
+                >
+                  {[10, 25, 50, 100, 200].map(r => (
+                    <option key={r} value={r}>{r} rounds</option>
+                  ))}
+                </select>
+              </ConfigRow>
+              <ConfigRow label="EXPORT AS">
+                <select
+                  value={exportFormat}
+                  onChange={e => setExportFormat(e.target.value)}
+                  style={selectSt}
+                >
+                  <option value="txt">Plain Text (.txt)</option>
+                  <option value="json">JSON (.json)</option>
+                  <option value="csv">CSV (.csv)</option>
+                </select>
+              </ConfigRow>
+              <button
+                onClick={handleGenerate}
+                disabled={generating}
+                style={{
+                  ...actionBtn('var(--accent-amber)', 'rgba(255,214,10,0.12)'),
+                  marginTop: '0.25rem',
+                  opacity: generating ? 0.7 : 1,
+                  width: '100%',
+                  justifyContent: 'center',
+                }}
+              >
+                {generating
+                  ? <><RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> GENERATING...</>
+                  : <><Brain size={13} /> GENERATE AI REPORT</>}
+              </button>
+              {generating && phase && (
+                <p className="font-mono" style={{ fontSize: '0.58rem', color: 'var(--accent-amber)', margin: 0, textAlign: 'center', opacity: 0.8 }}>
+                  ⟳ {phase}
+                </p>
+              )}
+            </div>
+          </Panel>
+
+          {/* Nash Summary */}
+          <Panel color="amber" title="NASH EQUILIBRIUM SUMMARY" icon={<Target size={12} />}>
+            <div style={{ marginBottom: '0.6rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>GAME VALUE v*</span>
+                <span className="font-mono" style={{ fontSize: '0.85rem', color: 'var(--accent-amber)' }}>{v.toFixed(4)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>PURE NE</span>
+                <span className="font-mono" style={{ fontSize: '0.65rem', color: pureNash.length > 0 ? 'var(--accent-green)' : 'var(--text-muted)' }}>
+                  {pureNash.length > 0 ? pureNash.map(n => `(A${n.row + 1},D${n.col + 1})`).join(' ') : 'NONE (MIXED)'}
+                </span>
+              </div>
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.5rem', marginTop: '0.25rem' }}>
+                <p className="font-mono text-muted" style={{ fontSize: '0.55rem', margin: '0 0 4px' }}>ATTACKER σ*_A</p>
+                {p.map((prob, i) => (
+                  <MiniBar key={i} label={`A${i + 1}`} value={prob} color="var(--accent-red)" />
+                ))}
+                <p className="font-mono text-muted" style={{ fontSize: '0.55rem', margin: '6px 0 4px' }}>DEFENDER σ*_D</p>
+                {q.map((prob, i) => (
+                  <MiniBar key={i} label={`D${i + 1}`} value={prob} color="var(--accent-cyan)" />
+                ))}
+              </div>
+            </div>
+          </Panel>
+
+          {/* Threat Assessment */}
+          <Panel color="green" title="THREAT ASSESSMENT" icon={<Activity size={12} />}>
+            {threatData ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {/* Risk badge */}
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.25rem' }}>
+                  <div style={{
+                    padding: '0.5rem 1.25rem',
+                    borderRadius: 8,
+                    border: `2px solid ${riskColor(threatData.riskLabel)}`,
+                    background: `${riskColor(threatData.riskLabel)}12`,
+                    textAlign: 'center',
+                  }}>
+                    <div className="font-mono" style={{ fontSize: '1.6rem', color: riskColor(threatData.riskLabel), lineHeight: 1 }}>
+                      {threatData.riskScore}
+                    </div>
+                    <div className="font-mono" style={{ fontSize: '0.6rem', color: riskColor(threatData.riskLabel), letterSpacing: '0.1em', marginTop: 2 }}>
+                      {threatData.riskLabel} RISK
+                    </div>
+                  </div>
+                </div>
+                <StatRow label="PRIMARY THREAT" value={threatData.primaryThreat} color="var(--accent-red)" />
+                <StatRow label="TOP MITIGATION" value={threatData.primaryMitigation} color="var(--accent-cyan)" />
+                <StatRow label="ATTACKER ADV." value={`${threatData.attackerAdvantage > 0 ? '+' : ''}${threatData.attackerAdvantage}`}
+                  color={threatData.attackerAdvantage > 0 ? 'var(--accent-red)' : 'var(--accent-green)'} />
+                <StatRow label="CONFIDENCE" value={`${threatData.confidenceLevel}%`} color="var(--accent-amber)" />
+                <div style={{ marginTop: '0.25rem', padding: '0.4rem 0.6rem', background: 'rgba(0,255,102,0.05)', border: '1px solid rgba(0,255,102,0.15)', borderRadius: 5 }}>
+                  <p className="font-mono" style={{ fontSize: '0.58rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                    {threatData.keyInsight}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 160, gap: '0.5rem', opacity: 0.4 }}>
+                <BarChart2 size={28} style={{ color: 'var(--accent-green)' }} />
+                <span className="font-mono text-muted" style={{ fontSize: '0.6rem' }}>AWAITING GENERATION</span>
+              </div>
+            )}
+          </Panel>
+        </div>
+
+        {/* Payoff Matrix Reference */}
+        <Panel color="cyan" title="PAYOFF MATRIX REFERENCE" icon={<Lock size={12} />}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={TH('var(--text-muted)')}>u_A(·)</th>
+                  {DEFENSE_STRATEGIES.map((d, i) => (
+                    <th key={i} style={TH('var(--accent-cyan)')}>D{i + 1}: {d}</th>
+                  ))}
+                  <th style={TH('var(--text-muted)')}>σ*_A</th>
+                </tr>
+              </thead>
+              <tbody>
+                {PAYOFF.map((row, r) => (
+                  <tr key={r} style={{ background: r % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent' }}>
+                    <td style={TD}><span className="font-mono" style={{ fontSize: '0.65rem', color: 'var(--accent-red)' }}>A{r + 1}: {ATTACK_STRATEGIES[r]}</span></td>
+                    {row.map((val, c) => {
+                      const isMax = val === Math.max(...row);
+                      const isMin = val === Math.min(...PAYOFF.map(rr => rr[c]));
+                      return (
+                        <td key={c} style={{ ...TD, textAlign: 'center', background: isMax && isMin ? 'rgba(255,214,10,0.12)' : 'transparent' }}>
+                          <span className="font-mono" style={{
+                            fontSize: '0.75rem',
+                            color: val > 0 ? 'var(--accent-red)' : val < 0 ? 'var(--accent-cyan)' : 'var(--text-muted)',
+                            fontWeight: isMax && isMin ? 700 : 400,
+                          }}>
+                            {val > 0 ? `+${val}` : val}
+                          </span>
+                        </td>
+                      );
+                    })}
+                    <td style={{ ...TD, textAlign: 'center' }}>
+                      <span className="font-mono" style={{ fontSize: '0.65rem', color: 'var(--accent-amber)' }}>
+                        {(p[r] * 100).toFixed(1)}%
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+                <tr>
+                  <td style={TD}><span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>σ*_D</span></td>
+                  {q.map((prob, i) => (
+                    <td key={i} style={{ ...TD, textAlign: 'center' }}>
+                      <span className="font-mono" style={{ fontSize: '0.65rem', color: 'var(--accent-cyan)' }}>{(prob * 100).toFixed(1)}%</span>
+                    </td>
+                  ))}
+                  <td style={TD} />
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          {pureNash.length === 0 && (
+            <div style={{ marginTop: '0.5rem', padding: '0.4rem 0.75rem', background: 'rgba(255,214,10,0.05)', border: '1px solid rgba(255,214,10,0.2)', borderRadius: 5 }}>
+              <span className="font-mono" style={{ fontSize: '0.6rem', color: 'var(--accent-amber)' }}>
+                ★ No pure Nash equilibrium — both players must randomize. Yellow cells indicate saddle-point candidates.
+              </span>
+            </div>
+          )}
+        </Panel>
+
+        {/* AI Report Sections */}
+        {generated && sections.length > 0 && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <CheckCircle size={14} style={{ color: 'var(--accent-green)' }} />
+                <span className="font-mono" style={{ fontSize: '0.68rem', color: 'var(--accent-green)', letterSpacing: '0.08em' }}>
+                  REPORT GENERATED — {sections.length} SECTIONS
+                </span>
+              </div>
+              <button
+                onClick={handleExport}
+                style={actionBtn('var(--accent-green)', 'rgba(0,255,102,0.1)')}
+              >
+                <Download size={13} /> EXPORT {exportFormat.toUpperCase()}
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }} ref={reportRef}>
+              {sections.map((sec, i) => {
+                const SIcon = sectionIcons[i] || FileText;
+                return (
+                  <Panel
+                    key={i}
+                    color={sectionColors[i]}
+                    title={`${i + 1}. ${sec.title}`}
+                    icon={<SIcon size={12} />}
+                    style={i === sections.length - 1 && sections.length % 2 !== 0 ? { gridColumn: '1/-1' } : {}}
+                  >
+                    <p style={{
+                      fontSize: '0.68rem',
+                      color: 'var(--text-secondary)',
+                      lineHeight: 1.8,
+                      margin: 0,
+                      fontFamily: 'var(--font-mono)',
+                    }}>
+                      {sec.body}
+                    </p>
+                  </Panel>
+                );
+              })}
+            </div>
+
+            {/* Metadata footer */}
+            <div style={{
+              padding: '0.6rem 1rem',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 6,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '1.5rem',
+              flexWrap: 'wrap',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Clock size={11} style={{ color: 'var(--text-muted)' }} />
+                <span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>
+                  Generated: {new Date().toLocaleString()}
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Brain size={11} style={{ color: 'var(--accent-amber)' }} />
+                <span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>Model: Claude Sonnet 4</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Activity size={11} style={{ color: 'var(--accent-cyan)' }} />
+                <span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>
+                  Scenario: {scenario} · {rounds} rounds
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <Target size={11} style={{ color: 'var(--accent-green)' }} />
+                <span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>
+                  v* = {v.toFixed(4)} · {PAYOFF.length}×{PAYOFF[0].length} zero-sum game
+                </span>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Empty state */}
+        {!generated && !generating && (
+          <div style={{
+            border: '1px dashed rgba(0,255,102,0.2)',
+            borderRadius: 10,
+            padding: '3rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '1rem',
+          }}>
+            <FileText size={42} style={{ color: 'var(--accent-green)', opacity: 0.4 }} />
+            <div style={{ textAlign: 'center' }}>
+              <h3 className="font-mono text-primary" style={{ fontSize: '0.85rem', margin: 0, letterSpacing: '0.08em' }}>
+                NO REPORT GENERATED YET
+              </h3>
+              <p className="text-secondary" style={{ fontSize: '0.68rem', marginTop: '0.4rem', maxWidth: 400, lineHeight: 1.6 }}>
+                Configure your parameters above and click <strong>Generate AI Report</strong> to produce a
+                full executive security briefing powered by Claude's game-theoretic analysis.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+              {['Nash Equilibrium Analysis', 'Threat Vectors', 'Defense Recommendations', 'Executive Summary', 'Export-Ready'].map(tag => (
+                <span key={tag} style={{
+                  padding: '3px 8px',
+                  border: '1px solid rgba(0,255,102,0.25)',
+                  borderRadius: 4,
+                  fontSize: '0.58rem',
+                  fontFamily: 'var(--font-mono)',
+                  color: 'var(--accent-green)',
+                  background: 'rgba(0,255,102,0.05)',
+                }}>
+                  <ChevronRight size={9} style={{ display: 'inline', marginRight: 2 }} />
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        select { background: var(--bg-panel); border: 1px solid rgba(255,255,255,0.12); color: var(--text-primary); padding: 3px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.62rem; outline: none; cursor: pointer; }
+        select:focus { border-color: rgba(0,240,255,0.4); }
+      `}</style>
     </div>
   );
 }
+
+/* ══════════════════════════════════════════════════
+   HELPER COMPONENTS
+══════════════════════════════════════════════════ */
+function Panel({ color, title, icon, children, style = {} }) {
+  const accent = { cyan: 'var(--accent-cyan)', amber: 'var(--accent-amber)', green: 'var(--accent-green)', red: 'var(--accent-red)' }[color] || 'var(--border-subtle)';
+  return (
+    <div style={{ background: 'var(--bg-panel)', border: `1px solid ${accent}28`, borderRadius: 8, padding: '0.875rem', backdropFilter: 'blur(12px)', ...style }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.65rem', paddingBottom: '0.5rem', borderBottom: `1px solid ${accent}18` }}>
+        {icon && <span style={{ color: accent }}>{icon}</span>}
+        <span className="font-mono" style={{ fontSize: '0.65rem', color: accent, letterSpacing: '0.08em' }}>{title}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function MiniBar({ label, value, color }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: 3 }}>
+      <span className="font-mono" style={{ fontSize: '0.55rem', color: 'var(--text-muted)', width: 18, flexShrink: 0 }}>{label}</span>
+      <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2 }}>
+        <div style={{ width: `${value * 100}%`, height: '100%', background: color, borderRadius: 2 }} />
+      </div>
+      <span className="font-mono" style={{ fontSize: '0.55rem', color, width: 36, textAlign: 'right', flexShrink: 0 }}>
+        {(value * 100).toFixed(1)}%
+      </span>
+    </div>
+  );
+}
+
+function ConfigRow({ label, children }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+      <span className="font-mono text-muted" style={{ fontSize: '0.58rem', whiteSpace: 'nowrap' }}>{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function StatRow({ label, value, color }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '0.3rem' }}>
+      <span className="font-mono text-muted" style={{ fontSize: '0.56rem' }}>{label}</span>
+      <span className="font-mono" style={{ fontSize: '0.65rem', color }}>{value}</span>
+    </div>
+  );
+}
+
+function riskColor(label) {
+  return { CRITICAL: '#ff3b30', HIGH: '#ff6b35', MEDIUM: '#ffd60a', LOW: '#00ff66' }[label] || '#00f0ff';
+}
+
+const selectSt = { width: '100%', minWidth: 0 };
+
+const actionBtn = (color, bg) => ({
+  background: bg,
+  border: `1px solid ${color}66`,
+  color,
+  padding: '6px 14px',
+  borderRadius: 5,
+  cursor: 'pointer',
+  fontSize: '0.65rem',
+  fontFamily: 'var(--font-mono)',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+  letterSpacing: '0.05em',
+  whiteSpace: 'nowrap',
+});
+
+const TH = (color) => ({
+  padding: '5px 8px',
+  fontFamily: 'var(--font-mono)',
+  fontSize: '0.58rem',
+  color,
+  borderBottom: '1px solid rgba(255,255,255,0.08)',
+  textAlign: 'center',
+  letterSpacing: '0.03em',
+  fontWeight: 500,
+});
+
+const TD = {
+  padding: '5px 8px',
+  borderBottom: '1px solid rgba(255,255,255,0.04)',
+  verticalAlign: 'middle',
+};
