@@ -4,6 +4,7 @@ import {
   Zap, Shield, Cpu, Activity, Play, Square, RefreshCw,
   AlertTriangle, CheckCircle, ChevronRight, Wifi, WifiOff, Brain
 } from 'lucide-react';
+import { useGameAPI } from '../hooks/useGameAPI';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer
 } from 'recharts';
@@ -30,21 +31,7 @@ const PAYOFF = [
   [2, -2, 5, 0],
 ];
 
-function solveMixed(matrix) {
-  const m = matrix.length, n = matrix[0].length;
-  let p = Array(m).fill(1 / m), q = Array(n).fill(1 / n);
-  for (let it = 0; it < 3000; it++) {
-    const ap = p.map((_, i) => q.reduce((s, qj, j) => s + qj * matrix[i][j], 0));
-    const dp = q.map((_, j) => p.reduce((s, pi, i) => s + pi * matrix[i][j], 0));
-    const ma = p.reduce((s, pi, i) => s + pi * ap[i], 0), md = q.reduce((s, qj, j) => s + qj * dp[j], 0);
-    p = p.map((pi, i) => Math.max(1e-9, pi + 0.04 * (ap[i] - ma)));
-    q = q.map((qj, j) => Math.max(1e-9, qj - 0.04 * (dp[j] - md)));
-    const sp = p.reduce((a, b) => a + b, 0), sq = q.reduce((a, b) => a + b, 0);
-    p = p.map(v => v / sp); q = q.map(v => v / sq);
-  }
-  const v = p.reduce((s, pi, i) => s + q.reduce((ss, qj, j) => ss + pi * qj * matrix[i][j], 0), 0);
-  return { p, q, v };
-}
+
 
 function sampleStrategy(probs) {
   const r = Math.random();
@@ -186,12 +173,33 @@ export default function Simulation() {
 
   const timerRef = useRef(null);
   const packetRef = useRef(null);
-  const { p: nashP, q: nashQ, v: nashV } = solveMixed(PAYOFF);
+  
+  const [nashData, setNashData] = useState(null);
+  const { computeNash } = useGameAPI();
 
   const addLog = useCallback((text, color = 'secondary') => {
     const time = new Date().toLocaleTimeString('en-US', { hour12: false });
     setLogs(prev => [{ id: Date.now() + Math.random(), time, text, color }, ...prev.slice(0, 14)]);
   }, []);
+
+  useEffect(() => {
+    computeNash(PAYOFF).then(data => {
+      setNashData({
+        p: data.attacker_strategy,
+        q: data.defender_strategy,
+        v: data.attacker_utility
+      });
+      addLog('Successfully loaded Nash Equilibrium from Python engine', 'green');
+    }).catch(err => {
+      console.error(err);
+      setNashData({ p: [0.25, 0.25, 0.25, 0.25], q: [0.25, 0.25, 0.25, 0.25], v: 0.0 });
+      addLog('Failed to connect to backend engine, using fallback distribution', 'red');
+    });
+  }, [addLog, computeNash]);
+
+  const nashP = nashData?.p || [0.25, 0.25, 0.25, 0.25];
+  const nashQ = nashData?.q || [0.25, 0.25, 0.25, 0.25];
+  const nashV = nashData?.v || 0.0;
 
   const animatePackets = useCallback((src, dst, color) => {
     const srcNode = NODES.find(n => n.id === src);

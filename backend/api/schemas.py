@@ -33,6 +33,7 @@ class LPSolveRequest(BaseModel):
     matrix: List[List[float]]
 
 class LPSolveResult(BaseModel):
+    optimal_attacker_strategy: List[float]
     optimal_defender_strategy: List[float]
     game_value: float
     status: str

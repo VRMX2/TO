@@ -34,23 +34,54 @@ async def get_topology_get(topology_type: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, Depends
+from db.database import get_db
+from db.models import ThreatLog, DefenseAction
+
 @router.post("/simulate-attack", response_model=SimulateAttackResult)
-async def run_simulate_attack(req: SimulateAttackRequest):
-    """Simulate a cyber attack on the network topology."""
+async def run_simulate_attack(req: SimulateAttackRequest, db: Session = Depends(get_db)):
+    """Simulate a cyber attack on the network topology and log the threat."""
     try:
         topology = generate_topology(req.topology_type)
         result = simulate_attack(topology, req.attack_type)
+        
+        # Log to database
+        threat_log = ThreatLog(
+            attack_type=result.get("attack_type", req.attack_type),
+            target_node=result.get("attacked_node", "unknown"),
+            severity=result.get("severity", 50),
+            status=result.get("status", "detected"),
+            confidence=0.85
+        )
+        db.add(threat_log)
+        db.commit()
+        
         return SimulateAttackResult(**result)
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/deploy-defense", response_model=DeployDefenseResult)
-async def run_deploy_defense(req: DeployDefenseRequest):
-    """Deploy a defense action to a network node."""
+async def run_deploy_defense(req: DeployDefenseRequest, db: Session = Depends(get_db)):
+    """Deploy a defense action to a network node and log the action."""
     try:
         topology = generate_topology(req.topology_type)
         result = deploy_defense(topology, req.target_node)
+        
+        # Log to database
+        action_log = DefenseAction(
+            action_id=result.get("action", "unknown"),
+            action_name=result.get("action", "unknown"),
+            target_node=req.target_node,
+            effectiveness=result.get("coverage", 0.0),
+            cost=10.0 # arbitrary default
+        )
+        db.add(action_log)
+        db.commit()
+        
         return DeployDefenseResult(**result)
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))

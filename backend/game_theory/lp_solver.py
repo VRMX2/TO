@@ -42,6 +42,26 @@ def solve_lp(payoff_matrix: np.ndarray):
     if res.success:
         defender_strategy = res.x[:-1]
         value = res.x[-1]
-        return [round(float(p), 3) for p in defender_strategy], round(float(value), 2)
+        
+        try:
+            attacker_strategy = np.abs(res.ineqlin.marginals)
+            if np.sum(attacker_strategy) > 0:
+                attacker_strategy = attacker_strategy / np.sum(attacker_strategy)
+            else:
+                attacker_strategy = np.array([1.0/m] * m)
+        except AttributeError:
+            attacker_strategy = np.array([1.0/m] * m)
+            
+        return {
+            "optimal_attacker_strategy": [round(float(p), 3) for p in attacker_strategy],
+            "optimal_defender_strategy": [round(float(p), 3) for p in defender_strategy],
+            "game_value": round(float(value), 2),
+            "status": "success"
+        }
     else:
-        return [0.25, 0.25, 0.25, 0.25], 0.0
+        return {
+            "optimal_attacker_strategy": [1.0/m] * m,
+            "optimal_defender_strategy": [1.0/n] * n,
+            "game_value": 0.0,
+            "status": "failed"
+        }

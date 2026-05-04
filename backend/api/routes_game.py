@@ -14,13 +14,35 @@ from game_theory.payoff import build_payoff_matrix
 router = APIRouter(prefix="/game", tags=["Game Theory"])
 
 
+from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, Depends
+from db.database import get_db
+from db.models import SimulationRun
+
 @router.post("/nash", response_model=NashResult)
-async def compute_nash(req: ComputeNashRequest):
-    """Compute Nash Equilibrium for the given payoff matrix."""
+async def compute_nash(req: ComputeNashRequest, db: Session = Depends(get_db)):
+    """Compute Nash Equilibrium for the given payoff matrix and save the run."""
     try:
         matrix = np.array(req.matrix, dtype=float)
         att_strat, def_strat, att_util, def_util = compute_nash_equilibrium(matrix)
         convergence = generate_convergence_data(att_util, def_util)
+        
+        # Optional: calculate pareto count to store in DB
+        pareto_profiles = find_pareto_optimal(matrix)
+        
+        # Persist to database
+        sim_run = SimulationRun(
+            scenario=req.scenario or "standard",
+            topology="star", # Default for now
+            nash_attacker_strategy=att_strat,
+            nash_defender_strategy=def_strat,
+            attacker_utility=float(att_util),
+            defender_utility=float(def_util),
+            pareto_count=len(pareto_profiles)
+        )
+        db.add(sim_run)
+        db.commit()
+
         return NashResult(
             attacker_strategy=att_strat,
             defender_strategy=def_strat,
@@ -29,6 +51,7 @@ async def compute_nash(req: ComputeNashRequest):
             convergence_data=convergence,
         )
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 
