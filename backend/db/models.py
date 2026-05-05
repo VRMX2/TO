@@ -42,3 +42,16 @@ class DefenseAction(Base):
     effectiveness = Column(Float, default=0.0)
     cost = Column(Float, default=0.0)
     applied_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ScenarioPreset(Base):
+    __tablename__ = "scenario_presets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, index=True, nullable=False)
+    matrix_size = Column(Integer, nullable=False, default=4)
+    sync_zero_sum = Column(Integer, nullable=False, default=1)  # 1=true, 0=false
+    attacker_matrix = Column(JSON, nullable=False)
+    defender_matrix = Column(JSON, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)

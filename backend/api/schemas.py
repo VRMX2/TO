@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
@@ -7,6 +7,7 @@ from datetime import datetime
 
 class ComputeNashRequest(BaseModel):
     matrix: List[List[float]]
+    defender_matrix: Optional[List[List[float]]] = None
     scenario: Optional[str] = "standard"
 
 class NashResult(BaseModel):
@@ -15,9 +16,14 @@ class NashResult(BaseModel):
     attacker_utility: float
     defender_utility: float
     convergence_data: List[Dict[str, Any]]
+    players: List[str] = Field(default_factory=lambda: ["Attacker", "Defender"])
+    equilibria: List[Dict[str, Any]] = Field(default_factory=list)
+    pure_nash_profiles: List[Dict[str, Any]] = Field(default_factory=list)
+    payoff_table: List[Dict[str, Any]] = Field(default_factory=list)
 
 class ParetoRequest(BaseModel):
     matrix: List[List[float]]
+    defender_matrix: Optional[List[List[float]]] = None
 
 class ParetoProfile(BaseModel):
     attacker_idx: int
@@ -28,6 +34,22 @@ class ParetoProfile(BaseModel):
 class ParetoResult(BaseModel):
     pareto_profiles: List[ParetoProfile]
     count: int
+
+class ScenarioPresetRequest(BaseModel):
+    name: str
+    matrix_size: int
+    sync_zero_sum: bool = True
+    attacker_matrix: List[List[float]]
+    defender_matrix: List[List[float]]
+
+class ScenarioPresetResponse(BaseModel):
+    name: str
+    matrix_size: int
+    sync_zero_sum: bool
+    attacker_matrix: List[List[float]]
+    defender_matrix: List[List[float]]
+    updated_at: datetime
+    created_at: datetime
 
 class LPSolveRequest(BaseModel):
     matrix: List[List[float]]

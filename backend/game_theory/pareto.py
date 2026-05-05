@@ -1,28 +1,34 @@
 import numpy as np
-from typing import List, Dict
+from typing import List, Dict, Optional
 
-def find_pareto_optimal(payoff_matrix: np.ndarray) -> List[Dict]:
+def find_pareto_optimal(payoff_matrix: np.ndarray, defender_matrix: Optional[np.ndarray] = None) -> List[Dict]:
     """
-    Finds Pareto optimal profiles in the given 4x4 payoff matrix.
-    Assuming zero-sum game, any point is trivially pareto optimal, 
-    so we simulate a general-sum characteristic for demonstration purposes 
-    or just return the highest payoff cells.
-    
-    Here we implement a standard pareto filter over all 16 pure profiles.
+    Finds Pareto-optimal pure profiles for a 2-player game.
+    If defender_matrix is omitted, a zero-sum model is used (B = -A).
+    Works for any matrix size (m x n).
     """
-    # Defender's matrix
-    defender_matrix = -payoff_matrix
-    
+    if payoff_matrix.ndim != 2:
+        raise ValueError("Payoff matrix must be 2-dimensional.")
+
+    if defender_matrix is None:
+        defender_matrix = -payoff_matrix
+    if defender_matrix.ndim != 2:
+        raise ValueError("Defender payoff matrix must be 2-dimensional.")
+    if defender_matrix.shape != payoff_matrix.shape:
+        raise ValueError("Attacker and defender matrices must have the same shape.")
+    rows, cols = payoff_matrix.shape
+
     profiles = []
-    for i in range(4):
-        for j in range(4):
+    for i in range(rows):
+        for j in range(cols):
             profiles.append({
-                'id': i * 4 + j,
-                'strat': f"(A{i+1},D{j+1})",
+                'id': i * cols + j,
+                'attacker_idx': i,
+                'defender_idx': j,
                 'att_val': float(payoff_matrix[i, j]),
                 'def_val': float(defender_matrix[i, j]),
-                'att': f"{'+' if payoff_matrix[i,j] > 0 else ''}{int(payoff_matrix[i, j])}",
-                'def_': f"{'+' if defender_matrix[i,j] > 0 else ''}{int(defender_matrix[i, j])}"
+                'attacker_payoff': float(payoff_matrix[i, j]),
+                'defender_payoff': float(defender_matrix[i, j]),
             })
             
     pareto_front = []
@@ -38,11 +44,5 @@ def find_pareto_optimal(payoff_matrix: np.ndarray) -> List[Dict]:
                 break
         if not is_dominated:
             pareto_front.append(p1)
-            
-    # For a strict zero sum game, all points are pareto optimal.
-    # To mimic the UI mockup showing 4 profiles, we just return the top 4 
-    # based on some heuristic if it's too long.
-    if len(pareto_front) > 4:
-        return pareto_front[:4]
-        
+
     return pareto_front
