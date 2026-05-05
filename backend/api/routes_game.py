@@ -121,8 +121,26 @@ async def get_scenario_matrix(scenario_name: str):
 
 
 @router.get("/presets", response_model=list[ScenarioPresetResponse])
-async def list_presets(db: Session = Depends(get_db)):
-    presets = db.query(ScenarioPreset).order_by(ScenarioPreset.updated_at.desc()).all()
+async def list_presets(
+    page: int = 1,
+    page_size: int = 50,
+    q: str | None = None,
+    db: Session = Depends(get_db),
+):
+    """
+    List scenario presets with optional name search and pagination.
+    """
+    if page < 1 or page_size < 1 or page_size > 200:
+        raise HTTPException(status_code=400, detail="Invalid page or page_size.")
+
+    query = db.query(ScenarioPreset)
+    if q:
+        like = f"%{q}%"
+        query = query.filter(ScenarioPreset.name.ilike(like))
+
+    query = query.order_by(ScenarioPreset.updated_at.desc())
+    presets = query.offset((page - 1) * page_size).limit(page_size).all()
+
     return [
         ScenarioPresetResponse(
             name=p.name,
@@ -140,9 +158,13 @@ async def list_presets(db: Session = Depends(get_db)):
 @router.post("/presets", response_model=ScenarioPresetResponse)
 async def upsert_preset(req: ScenarioPresetRequest, db: Session = Depends(get_db)):
     try:
-        _to_matrix_2d(req.attacker_matrix, "attacker_matrix")
-        _to_matrix_2d(req.defender_matrix, "defender_matrix")
-        if len(req.attacker_matrix) != req.matrix_size or len(req.attacker_matrix[0]) != req.matrix_size:
+        if req.matrix_size <= 0:
+            raise ValueError("matrix_size must be a positive integer.")
+        a = _to_matrix_2d(req.attacker_matrix, "attacker_matrix")
+        d = _to_matrix_2d(req.defender_matrix, "defender_matrix")
+        if a.shape != d.shape:
+            raise ValueError("attacker_matrix and defender_matrix must have the same shape.")
+        if a.shape[0] != req.matrix_size or a.shape[1] != req.matrix_size:
             raise ValueError("matrix_size must match attacker_matrix dimensions.")
         existing = db.query(ScenarioPreset).filter(ScenarioPreset.name == req.name).first()
         if existing:
@@ -189,22 +211,38 @@ async def rename_preset(old_name: str, req: ScenarioPresetRequest, db: Session =
     target_conflict = db.query(ScenarioPreset).filter(ScenarioPreset.name == req.name, ScenarioPreset.name != old_name).first()
     if target_conflict:
         raise HTTPException(status_code=409, detail="Target preset name already exists.")
-    row.name = req.name
-    row.matrix_size = req.matrix_size
-    row.sync_zero_sum = 1 if req.sync_zero_sum else 0
-    row.attacker_matrix = req.attacker_matrix
-    row.defender_matrix = req.defender_matrix
-    db.commit()
-    db.refresh(row)
-    return ScenarioPresetResponse(
-        name=row.name,
-        matrix_size=row.matrix_size,
-        sync_zero_sum=bool(row.sync_zero_sum),
-        attacker_matrix=row.attacker_matrix,
-        defender_matrix=row.defender_matrix,
-        updated_at=row.updated_at,
-        created_at=row.created_at,
-    )
+    try:
+        if req.matrix_size <= 0:
+            raise ValueError("matrix_size must be a positive integer.")
+        a = _to_matrix_2d(req.attacker_matrix, "attacker_matrix")
+        d = _to_matrix_2d(req.defender_matrix, "defender_matrix")
+        if a.shape != d.shape:
+            raise ValueError("attacker_matrix and defender_matrix must have the same shape.")
+        if a.shape[0] != req.matrix_size or a.shape[1] != req.matrix_size:
+            raise ValueError("matrix_size must match attacker_matrix dimensions.")
+
+        row.name = req.name
+        row.matrix_size = req.matrix_size
+        row.sync_zero_sum = 1 if req.sync_zero_sum else 0
+        row.attacker_matrix = req.attacker_matrix
+        row.defender_matrix = req.defender_matrix
+        db.commit()
+        db.refresh(row)
+        return ScenarioPresetResponse(
+            name=row.name,
+            matrix_size=row.matrix_size,
+            sync_zero_sum=bool(row.sync_zero_sum),
+            attacker_matrix=row.attacker_matrix,
+            defender_matrix=row.defender_matrix,
+            updated_at=row.updated_at,
+            created_at=row.created_at,
+        )
+    except ValueError as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.delete("/presets/{name}")

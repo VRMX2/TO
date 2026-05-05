@@ -51,11 +51,11 @@ function findPureNash(matrix) {
 /* ══════════════════════════════════════════════════
    CLAUDE AI REPORT GENERATOR
 ══════════════════════════════════════════════════ */
-/* Single backend call — proxied via Vite /api → http://localhost:8000 */
+/* Single backend call — proxied via Vite/Nginx /api -> backend */
 async function generateFullReport(params) {
   const { nash, pureNash, gameValue, scenario, rounds } = params;
 
-  const response = await fetch('http://localhost:8000/ai/generate-report', {
+  const response = await fetch('/api/ai/generate-report', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -114,7 +114,7 @@ export default function Report() {
       setGenerated(true);
     } catch (err) {
       console.error('Report generation error:', err);
-      setReportText('ERROR: ' + (err.message || 'Failed to generate report. Make sure the backend is running on port 8000.'));
+      setReportText('ERROR: ' + (err.message || 'Failed to generate report. Make sure backend is running.'));
     } finally {
       setGenerating(false);
       setPhase('');

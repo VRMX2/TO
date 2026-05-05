@@ -24,7 +24,16 @@ export default function Dashboard() {
   const setThreatLevel = useGameStore(state => state.setThreatLevel);
   const updateNashResults = useGameStore(state => state.updateNashResults);
 
-  const { computeNash, getPareto, listPresets, savePreset: savePresetApi, renamePreset, deletePreset } = useGameAPI();
+  const {
+    computeNash,
+    getPareto,
+    listPresets,
+    savePreset: savePresetApi,
+    renamePreset,
+    deletePreset,
+    simulateAttack: simulateAttackAPI,
+    deployDefense: deployDefenseAPI,
+  } = useGameAPI();
 
   const [scenario, setScenario] = useState('standard');
   const [topology, setTopology] = useState('star');
@@ -284,21 +293,16 @@ export default function Dashboard() {
     simulateAttack(); // optimistic update
     addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: `Simulating ${scenario} attack on ${topology} topology...`, color: 'red' });
     try {
-      const res = await fetch(`http://localhost:8000/network/simulate-attack`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topology_type: topology, attack_type: 'DDoS' }),
-      });
-      const data = await res.json();
+      const data = await simulateAttackAPI({ topology_type: topology, attack_type: 'DDoS' });
       setAttackResult(data);
       setThreatLevel(Math.min(100, threatLevel + data.severity));
       addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: `Attack: ${data.attack_type} → node ${data.attacked_node} | severity ${data.severity} | ${data.status}`, color: 'red' });
-    } catch {
-      addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: 'Attack simulation complete (backend offline)', color: 'amber' });
+    } catch (error) {
+      addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: error.message || 'Attack simulation failed', color: 'amber' });
     } finally {
       setLoading(l => ({ ...l, attack: false }));
     }
-  }, [scenario, topology, threatLevel]);
+  }, [scenario, topology, threatLevel, simulateAttackAPI, simulateAttack]);
 
   const handleDefense = useCallback(async () => {
     setLoading(l => ({ ...l, defense: true }));
@@ -306,20 +310,15 @@ export default function Dashboard() {
     deployDefense(); // optimistic update
     addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: `Deploying ${aiMode === 'rl' ? 'RL-adaptive' : 'static'} defense on ${topology} topology...`, color: 'green' });
     try {
-      const res = await fetch(`http://localhost:8000/network/deploy-defense`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topology_type: topology }),
-      });
-      const data = await res.json();
+      const data = await deployDefenseAPI({ topology_type: topology });
       setDefenseResult(data);
       addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: `Defense deployed → ${data.defended_node} | coverage ${(data.coverage * 100).toFixed(0)}% | ${data.action}`, color: 'green' });
-    } catch {
-      addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: 'Defense deployed (backend offline)', color: 'amber' });
+    } catch (error) {
+      addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: error.message || 'Defense deployment failed', color: 'amber' });
     } finally {
       setLoading(l => ({ ...l, defense: false }));
     }
-  }, [aiMode, topology]);
+  }, [aiMode, topology, deployDefenseAPI, deployDefense]);
 
   const gameValue = nashData?.attacker_utility ?? 0;
 

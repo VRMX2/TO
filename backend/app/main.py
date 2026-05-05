@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+import logging
+from datetime import datetime, timezone
 from .config import settings
 from db.database import init_db
 
@@ -15,6 +17,16 @@ app = FastAPI(
     version="1.0.0"
 )
 
+logger = logging.getLogger("cybergamegt.startup")
+if not logger.handlers:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    )
+
+app.state.started_at = None
+app.state.db_ready = False
+
 # Set up CORS
 app.add_middleware(
     CORSMiddleware,
@@ -27,7 +39,15 @@ app.add_middleware(
 # Initialize Database
 @app.on_event("startup")
 def startup_event():
-    init_db()
+    logger.info("Starting %s", settings.app_name)
+    app.state.started_at = datetime.now(timezone.utc).isoformat()
+    try:
+        init_db()
+        app.state.db_ready = True
+        logger.info("Database initialized successfully")
+    except Exception:
+        app.state.db_ready = False
+        logger.exception("Database initialization failed")
 
 # Include Routers
 app.include_router(game_router)
@@ -42,4 +62,38 @@ def read_root():
         "name": settings.app_name,
         "status": "online",
         "docs_url": "/docs"
+    }
+
+
+@app.get("/health")
+def health():
+    return {
+        "status": "ok",
+        "service": settings.app_name,
+        "version": app.version,
+        "db_ready": app.state.db_ready,
+        "started_at": app.state.started_at,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@app.get("/ready")
+def ready():
+    if not app.state.db_ready:
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "status": "not_ready",
+                "service": settings.app_name,
+                "db_ready": app.state.db_ready,
+                "started_at": app.state.started_at,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
+    return {
+        "status": "ready",
+        "service": settings.app_name,
+        "db_ready": app.state.db_ready,
+        "started_at": app.state.started_at,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }

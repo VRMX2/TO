@@ -36,12 +36,13 @@ export const useGameAPI = () => {
     return apiCall('Load Pareto profiles', () => api.post('/game/pareto', payload));
   };
 
-  const simulateAttack = async (scenario, topology) => {
-    return apiCall('Simulate attack', () => api.post('/network/simulate', { scenario, topology }));
+  const simulateAttack = async ({ topology_type = 'star', attack_type = 'DDoS' } = {}) => {
+    return apiCall('Simulate attack', () => api.post('/network/simulate-attack', { topology_type, attack_type }));
   };
 
-  const deployDefense = async (strategyId, aiMode) => {
-    return apiCall('Deploy defense', () => api.post('/ai/adapt', { strategyId, aiMode }));
+  const deployDefense = async ({ topology_type = 'star', target_node = null } = {}) => {
+    const payload = target_node ? { topology_type, target_node } : { topology_type };
+    return apiCall('Deploy defense', () => api.post('/network/deploy-defense', payload));
   };
 
   const listPresets = async () => {

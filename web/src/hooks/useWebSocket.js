@@ -9,10 +9,17 @@ export const useWebSocket = () => {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
+    const buildWebSocketUrl = () => {
+      const envUrl = import.meta.env.VITE_WS_URL;
+      if (envUrl) return envUrl;
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${protocol}//${window.location.host}/ws/threats`;
+    };
+
     const connectWS = () => {
       try {
-        // Connect directly to the FastAPI backend WebSocket
-        ws.current = new WebSocket('ws://localhost:8000/ws/threats');
+        // Uses same host by default; can be overridden with VITE_WS_URL.
+        ws.current = new WebSocket(buildWebSocketUrl());
 
         ws.current.onopen = () => {
           setConnected(true);

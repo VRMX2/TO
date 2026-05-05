@@ -1,5 +1,8 @@
 # CyberGameGT
 
+[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+[![Docker Build Check](https://github.com/OWNER/REPO/actions/workflows/docker-build-check.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/docker-build-check.yml)
+
 CyberGameGT is an educational platform for demonstrating Game Theory and AI-driven Cyber Security defense strategies.
 
 ## 🚀 Getting Started
@@ -29,7 +32,7 @@ The API will be available at `http://localhost:8000`.
 
 Install frontend dependencies:
 ```bash
-cd frontend
+cd web
 npm install
 ```
 
@@ -39,6 +42,58 @@ npm run dev
 ```
 
 The dashboard will be available at `http://localhost:5173`.
+
+### 3. Docker Backend Build
+
+From the repository root:
+
+```bash
+docker build -f backend/Dockerfile -t cybergame-backend backend
+```
+
+Alternative backend Dockerfile:
+
+```bash
+docker build -f backend/venv/Dockerfile -t cybergame-backend-venv backend
+```
+
+### 4. Run Full Stack with Docker Compose
+
+From the repository root:
+
+```bash
+docker compose up --build
+```
+
+Services:
+- Backend API: `http://localhost:8000`
+- Web App: `http://localhost:5173`
+
+### 4.b Production Compose (Static Web + Nginx)
+
+From the repository root:
+
+```bash
+docker compose -f docker-compose.prod.yml up --build -d
+```
+
+Production stack services:
+- Backend API: `http://localhost:8000`
+- Web (Nginx static): `http://localhost:5173`
+
+### 5. Handy Makefile Commands
+
+```bash
+make help
+make up
+make down
+make build
+make logs
+make up-prod
+make down-prod
+make build-prod
+make logs-prod
+```
 
 ## 🛠️ Usage
 
@@ -59,6 +114,47 @@ Run dynamic simulations with the AI agent:
 - **Endpoint**: `http://localhost:8000/network/simulate-attack`
 - **Request**: `POST` with `topology_type` and `attack_type`.
 - **Response**: Attack results and threat level.
+
+## 🚢 Deployment Health Probes
+
+The backend exposes two probe endpoints:
+
+- **Liveness**: `GET /health`
+- **Readiness**: `GET /ready`
+
+Use these mappings in deployments:
+
+- `livenessProbe` -> `/health`
+- `readinessProbe` -> `/ready`
+
+### Docker (HEALTHCHECK)
+
+```dockerfile
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"
+```
+
+### Kubernetes Probe Example
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8000
+  initialDelaySeconds: 15
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /ready
+    port: 8000
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 2
+  failureThreshold: 3
+```
 
 ## 🧩 Game Description
 
