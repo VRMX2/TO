@@ -16,8 +16,8 @@ const PAYOFF = [
   [-3, 1, 7, 2],
   [2, -2, 5, 0],
 ];
-const ATTACK_STRATEGIES = ['SQL Injection', 'DDoS Flood', 'Zero-Day Exploit', 'Phishing APT'];
-const DEFENSE_STRATEGIES = ['Firewall', 'Intrusion Det.', 'Patch System', 'Honey Pot'];
+const ATTACK_STRATEGIES = ['A1', 'A2', 'A3', 'A4'];
+const DEFENSE_STRATEGIES = ['D1', 'D2', 'D3', 'D4'];
 
 function solveMixedNash(matrix) {
   const m = matrix.length, n = matrix[0].length;
@@ -82,57 +82,9 @@ async function generateFullReport(params) {
    MAIN REPORT COMPONENT
 ══════════════════════════════════════════════════ */
 export default function Report() {
-  const { language } = useI18n();
-  const i18n = {
-    en: {
-      title: 'AI EXECUTIVE BRIEFING',
-      subtitle: 'Claude-powered analysis · Game-theoretic security intelligence · Export-ready',
-      powered: 'POWERED BY CLAUDE AI',
-      config: 'REPORT CONFIGURATION',
-      nashSummary: 'NASH EQUILIBRIUM SUMMARY',
-      threat: 'THREAT ASSESSMENT',
-      generate: 'GENERATE AI REPORT',
-      generating: 'GENERATING...',
-      matrixRef: 'PAYOFF MATRIX REFERENCE',
-      generated: 'REPORT GENERATED',
-      export: 'EXPORT',
-      emptyTitle: 'NO REPORT GENERATED YET',
-      emptyHelp: 'Configure your parameters above and click Generate AI Report to produce a full executive security briefing powered by Claude game-theoretic analysis.',
-      emptyTags: ['Nash Equilibrium Analysis', 'Threat Vectors', 'Defense Recommendations', 'Executive Summary', 'Export-Ready'],
-    },
-    fr: {
-      title: 'BRIEFING EXECUTIF IA',
-      subtitle: 'Analyse par Claude · Intelligence securite par theorie des jeux · Exportable',
-      powered: 'PROPULSE PAR CLAUDE IA',
-      config: 'CONFIGURATION RAPPORT',
-      nashSummary: 'RESUME EQUILIBRE DE NASH',
-      threat: 'EVALUATION MENACE',
-      generate: 'GENERER RAPPORT IA',
-      generating: 'GENERATION...',
-      matrixRef: 'REFERENCE MATRICE DE GAIN',
-      generated: 'RAPPORT GENERE',
-      export: 'EXPORTER',
-      emptyTitle: 'AUCUN RAPPORT GENERE',
-      emptyHelp: 'Configurez les parametres ci-dessus et cliquez sur Generer rapport IA pour produire un briefing executif complet base sur l analyse de Claude.',
-      emptyTags: ['Analyse de Nash', 'Vecteurs de menace', 'Recommandations defense', 'Resume executif', 'Pret a exporter'],
-    },
-    ar: {
-      title: 'موجز تنفيذي بالذكاء الاصطناعي',
-      subtitle: 'تحليل مدعوم بكلود · ذكاء امني بنظرية الالعاب · جاهز للتصدير',
-      powered: 'مدعوم بواسطة كلود',
-      config: 'اعدادات التقرير',
-      nashSummary: 'ملخص توازن ناش',
-      threat: 'تقييم التهديد',
-      generate: 'انشاء تقرير بالذكاء الاصطناعي',
-      generating: 'جاري الانشاء...',
-      matrixRef: 'مرجع مصفوفة العوائد',
-      generated: 'تم انشاء التقرير',
-      export: 'تصدير',
-      emptyTitle: 'لا يوجد تقرير حتى الان',
-      emptyHelp: 'قم بضبط الاعدادات اعلاه ثم اضغط انشاء تقرير بالذكاء الاصطناعي للحصول على موجز امني تنفيذي كامل مدعوم بتحليل كلود.',
-      emptyTags: ['تحليل توازن ناش', 'متجهات التهديد', 'توصيات الدفاع', 'ملخص تنفيذي', 'جاهز للتصدير'],
-    },
-  }[language] || {};
+  const { t } = useI18n();
+  const attackNames = t('common.attackStrategies') || [];
+  const defenseNames = t('common.defenseStrategies') || [];
   const [scenario, setScenario] = useState('Standard 4×4 Zero-Sum');
   const [rounds, setRounds] = useState(50);
   const [generating, setGenerating] = useState(false);
@@ -201,8 +153,8 @@ export default function Report() {
         ['Risk Level', threatData?.riskLabel ?? 'N/A'],
         ['Primary Threat', threatData?.primaryThreat ?? 'N/A'],
         ['Primary Defense', threatData?.primaryMitigation ?? 'N/A'],
-        ...ATTACK_STRATEGIES.map((s, i) => [`Attacker σ*: ${s}`, `${(p[i] * 100).toFixed(2)}%`]),
-        ...DEFENSE_STRATEGIES.map((s, i) => [`Defender σ*: ${s}`, `${(q[i] * 100).toFixed(2)}%`]),
+        ...attackNames.map((s, i) => [`Attacker σ*: ${s}`, `${(p[i] * 100).toFixed(2)}%`]),
+        ...defenseNames.map((s, i) => [`Defender σ*: ${s}`, `${(q[i] * 100).toFixed(2)}%`]),
       ];
       content = rows.map(r => r.join(',')).join('\n');
     }
@@ -212,7 +164,7 @@ export default function Report() {
     const a = document.createElement('a');
     a.href = url; a.download = filename; a.click();
     URL.revokeObjectURL(url);
-  }, [reportText, threatData, exportFormat, scenario, rounds, p, q, v]);
+  }, [reportText, threatData, exportFormat, scenario, rounds, p, q, v, attackNames, defenseNames]);
 
   /* Parse report into named sections */
   const sections = React.useMemo(() => {
@@ -253,17 +205,17 @@ export default function Report() {
             <FileText size={22} style={{ color: 'var(--accent-green)' }} />
             <div>
               <h2 className="text-primary font-mono" style={{ fontSize: '1rem', margin: 0, letterSpacing: '0.1em' }}>
-                {i18n.title}
+                {t('report.title')}
               </h2>
               <p className="text-secondary" style={{ fontSize: '0.72rem', margin: 0, marginTop: 2 }}>
-                {i18n.subtitle}
+                {t('report.subtitle')}
               </p>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Brain size={13} style={{ color: 'var(--accent-amber)' }} />
             <span className="font-mono" style={{ fontSize: '0.6rem', color: 'var(--accent-amber)' }}>
-              {i18n.powered}
+              {t('report.powered')}
             </span>
           </div>
         </div>
@@ -272,9 +224,9 @@ export default function Report() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
 
           {/* Config Panel */}
-          <Panel color="cyan" title={i18n.config} icon={<Cpu size={12} />}>
+          <Panel color="cyan" title={t('report.config')} icon={<Cpu size={12} />}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <ConfigRow label="SCENARIO">
+              <ConfigRow label={t('report.scenarioLabel')}>
                 <select
                   value={scenario}
                   onChange={e => setScenario(e.target.value)}
@@ -285,7 +237,7 @@ export default function Report() {
                   <option>Zero-Sum Symmetric</option>
                 </select>
               </ConfigRow>
-              <ConfigRow label="ROUNDS">
+              <ConfigRow label={t('report.roundsLabel')}>
                 <select
                   value={rounds}
                   onChange={e => setRounds(Number(e.target.value))}
@@ -296,15 +248,15 @@ export default function Report() {
                   ))}
                 </select>
               </ConfigRow>
-              <ConfigRow label="EXPORT AS">
+              <ConfigRow label={t('report.exportAsLabel')}>
                 <select
                   value={exportFormat}
                   onChange={e => setExportFormat(e.target.value)}
                   style={selectSt}
                 >
-                  <option value="txt">Plain Text (.txt)</option>
-                  <option value="json">JSON (.json)</option>
-                  <option value="csv">CSV (.csv)</option>
+                  <option value="txt">{t('report.optionPlainText')}</option>
+                  <option value="json">{t('report.optionJson')}</option>
+                  <option value="csv">{t('report.optionCsv')}</option>
                 </select>
               </ConfigRow>
               <button
@@ -319,8 +271,8 @@ export default function Report() {
                 }}
               >
                 {generating
-                  ? <><RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> {i18n.generating}</>
-                  : <><Brain size={13} /> {i18n.generate}</>}
+                  ? <><RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> {t('report.generating')}</>
+                  : <><Brain size={13} /> {t('report.generate')}</>}
               </button>
               {generating && phase && (
                 <p className="font-mono" style={{ fontSize: '0.58rem', color: 'var(--accent-amber)', margin: 0, textAlign: 'center', opacity: 0.8 }}>
@@ -331,24 +283,24 @@ export default function Report() {
           </Panel>
 
           {/* Nash Summary */}
-          <Panel color="amber" title={i18n.nashSummary} icon={<Target size={12} />}>
+          <Panel color="amber" title={t('report.nashSummary')} icon={<Target size={12} />}>
             <div style={{ marginBottom: '0.6rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>GAME VALUE v*</span>
+                <span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>{t('report.gameValueLabel')}</span>
                 <span className="font-mono" style={{ fontSize: '0.85rem', color: 'var(--accent-amber)' }}>{v.toFixed(4)}</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>PURE NE</span>
+                <span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>{t('report.pureNeLabel')}</span>
                 <span className="font-mono" style={{ fontSize: '0.65rem', color: pureNash.length > 0 ? 'var(--accent-green)' : 'var(--text-muted)' }}>
-                  {pureNash.length > 0 ? pureNash.map(n => `(A${n.row + 1},D${n.col + 1})`).join(' ') : 'NONE (MIXED)'}
+                  {pureNash.length > 0 ? pureNash.map(n => `(A${n.row + 1},D${n.col + 1})`).join(' ') : t('report.noneMixed')}
                 </span>
               </div>
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.5rem', marginTop: '0.25rem' }}>
-                <p className="font-mono text-muted" style={{ fontSize: '0.55rem', margin: '0 0 4px' }}>ATTACKER σ*_A</p>
+                <p className="font-mono text-muted" style={{ fontSize: '0.55rem', margin: '0 0 4px' }}>{t('report.attackerSigma')}</p>
                 {p.map((prob, i) => (
                   <MiniBar key={i} label={`A${i + 1}`} value={prob} color="var(--accent-red)" />
                 ))}
-                <p className="font-mono text-muted" style={{ fontSize: '0.55rem', margin: '6px 0 4px' }}>DEFENDER σ*_D</p>
+                <p className="font-mono text-muted" style={{ fontSize: '0.55rem', margin: '6px 0 4px' }}>{t('report.defenderSigma')}</p>
                 {q.map((prob, i) => (
                   <MiniBar key={i} label={`D${i + 1}`} value={prob} color="var(--accent-cyan)" />
                 ))}
@@ -357,7 +309,7 @@ export default function Report() {
           </Panel>
 
           {/* Threat Assessment */}
-          <Panel color="green" title={i18n.threat} icon={<Activity size={12} />}>
+          <Panel color="green" title={t('report.threat')} icon={<Activity size={12} />}>
             {threatData ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {/* Risk badge */}
@@ -377,11 +329,11 @@ export default function Report() {
                     </div>
                   </div>
                 </div>
-                <StatRow label="PRIMARY THREAT" value={threatData.primaryThreat} color="var(--accent-red)" />
-                <StatRow label="TOP MITIGATION" value={threatData.primaryMitigation} color="var(--accent-cyan)" />
-                <StatRow label="ATTACKER ADV." value={`${threatData.attackerAdvantage > 0 ? '+' : ''}${threatData.attackerAdvantage}`}
+                <StatRow label={t('report.primaryThreat')} value={threatData.primaryThreat} color="var(--accent-red)" />
+                <StatRow label={t('report.topMitigation')} value={threatData.primaryMitigation} color="var(--accent-cyan)" />
+                <StatRow label={t('report.attackerAdv')} value={`${threatData.attackerAdvantage > 0 ? '+' : ''}${threatData.attackerAdvantage}`}
                   color={threatData.attackerAdvantage > 0 ? 'var(--accent-red)' : 'var(--accent-green)'} />
-                <StatRow label="CONFIDENCE" value={`${threatData.confidenceLevel}%`} color="var(--accent-amber)" />
+                <StatRow label={t('report.confidence')} value={`${threatData.confidenceLevel}%`} color="var(--accent-amber)" />
                 <div style={{ marginTop: '0.25rem', padding: '0.4rem 0.6rem', background: 'rgba(0,255,102,0.05)', border: '1px solid rgba(0,255,102,0.15)', borderRadius: 5 }}>
                   <p className="font-mono" style={{ fontSize: '0.58rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
                     {threatData.keyInsight}
@@ -391,21 +343,21 @@ export default function Report() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 160, gap: '0.5rem', opacity: 0.4 }}>
                 <BarChart2 size={28} style={{ color: 'var(--accent-green)' }} />
-                <span className="font-mono text-muted" style={{ fontSize: '0.6rem' }}>AWAITING GENERATION</span>
+                <span className="font-mono text-muted" style={{ fontSize: '0.6rem' }}>{t('report.awaitingGeneration')}</span>
               </div>
             )}
           </Panel>
         </div>
 
         {/* Payoff Matrix Reference */}
-        <Panel color="cyan" title={i18n.matrixRef} icon={<Lock size={12} />}>
+        <Panel color="cyan" title={t('report.matrixRef')} icon={<Lock size={12} />}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
                   <th style={TH('var(--text-muted)')}>u_A(·)</th>
                   {DEFENSE_STRATEGIES.map((d, i) => (
-                    <th key={i} style={TH('var(--accent-cyan)')}>D{i + 1}: {d}</th>
+                    <th key={i} style={TH('var(--accent-cyan)')}>D{i + 1}: {defenseNames[i]}</th>
                   ))}
                   <th style={TH('var(--text-muted)')}>σ*_A</th>
                 </tr>
@@ -413,7 +365,7 @@ export default function Report() {
               <tbody>
                 {PAYOFF.map((row, r) => (
                   <tr key={r} style={{ background: r % 2 === 0 ? 'rgba(255,255,255,0.015)' : 'transparent' }}>
-                    <td style={TD}><span className="font-mono" style={{ fontSize: '0.65rem', color: 'var(--accent-red)' }}>A{r + 1}: {ATTACK_STRATEGIES[r]}</span></td>
+                    <td style={TD}><span className="font-mono" style={{ fontSize: '0.65rem', color: 'var(--accent-red)' }}>A{r + 1}: {attackNames[r]}</span></td>
                     {row.map((val, c) => {
                       const isMax = val === Math.max(...row);
                       const isMin = val === Math.min(...PAYOFF.map(rr => rr[c]));
@@ -451,7 +403,7 @@ export default function Report() {
           {pureNash.length === 0 && (
             <div style={{ marginTop: '0.5rem', padding: '0.4rem 0.75rem', background: 'rgba(255,214,10,0.05)', border: '1px solid rgba(255,214,10,0.2)', borderRadius: 5 }}>
               <span className="font-mono" style={{ fontSize: '0.6rem', color: 'var(--accent-amber)' }}>
-                ★ No pure Nash equilibrium — both players must randomize. Yellow cells indicate saddle-point candidates.
+                {t('report.noPureHint')}
               </span>
             </div>
           )}
@@ -464,14 +416,14 @@ export default function Report() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <CheckCircle size={14} style={{ color: 'var(--accent-green)' }} />
                 <span className="font-mono" style={{ fontSize: '0.68rem', color: 'var(--accent-green)', letterSpacing: '0.08em' }}>
-                  {i18n.generated} — {sections.length} SECTIONS
+                  {t('report.generated')} — {sections.length} SECTIONS
                 </span>
               </div>
               <button
                 onClick={handleExport}
                 style={actionBtn('var(--accent-green)', 'rgba(0,255,102,0.1)')}
               >
-                <Download size={13} /> {i18n.export} {exportFormat.toUpperCase()}
+                <Download size={13} /> {t('report.export')} {exportFormat.toUpperCase()}
               </button>
             </div>
 
@@ -513,23 +465,23 @@ export default function Report() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Clock size={11} style={{ color: 'var(--text-muted)' }} />
                 <span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>
-                  Generated: {new Date().toLocaleString()}
+                  {t('report.generatedAt')}: {new Date().toLocaleString()}
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Brain size={11} style={{ color: 'var(--accent-amber)' }} />
-                <span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>Model: Claude Sonnet 4</span>
+                <span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>{t('report.modelLabel')}: Claude Sonnet 4</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Activity size={11} style={{ color: 'var(--accent-cyan)' }} />
                 <span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>
-                  Scenario: {scenario} · {rounds} rounds
+                  {t('report.scenarioMeta')}: {scenario} · {rounds} {t('report.roundsMeta')}
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Target size={11} style={{ color: 'var(--accent-green)' }} />
                 <span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>
-                  v* = {v.toFixed(4)} · {PAYOFF.length}×{PAYOFF[0].length} zero-sum game
+                  v* = {v.toFixed(4)} · {PAYOFF.length}×{PAYOFF[0].length} {t('report.zeroSumMeta')}
                 </span>
               </div>
             </div>
@@ -550,14 +502,14 @@ export default function Report() {
             <FileText size={42} style={{ color: 'var(--accent-green)', opacity: 0.4 }} />
             <div style={{ textAlign: 'center' }}>
               <h3 className="font-mono text-primary" style={{ fontSize: '0.85rem', margin: 0, letterSpacing: '0.08em' }}>
-                {i18n.emptyTitle}
+                {t('report.emptyTitle')}
               </h3>
               <p className="text-secondary" style={{ fontSize: '0.68rem', marginTop: '0.4rem', maxWidth: 400, lineHeight: 1.6 }}>
-                {i18n.emptyHelp}
+                {t('report.emptyHelp')}
               </p>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-              {(i18n.emptyTags || []).map(tag => (
+              {(t('report.emptyTags') || []).map(tag => (
                 <span key={tag} style={{
                   padding: '3px 8px',
                   border: '1px solid rgba(0,255,102,0.25)',

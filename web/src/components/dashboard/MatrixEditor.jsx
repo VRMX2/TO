@@ -23,15 +23,22 @@ export default function MatrixEditor({
           value={matrixSize}
           onChange={(e) => {
             const nextSize = Number(e.target.value);
+            const nextAttacker = resizeMatrix(attackerMatrix, nextSize);
+            const nextDefenderBase = resizeMatrix(defenderMatrix, nextSize);
+            const nextDefender = syncZeroSum
+              ? nextAttacker.map((row) => row.map((v) => -v))
+              : nextDefenderBase;
             setMatrixSize(nextSize);
-            setAttackerMatrix((m) => resizeMatrix(m, nextSize));
-            setDefenderMatrix((m) => resizeMatrix(m, nextSize));
+            setAttackerMatrix(nextAttacker);
+            setDefenderMatrix(nextDefender);
+            // Recompute immediately so dashboard tables follow new dimensions.
+            fetchNash(nextAttacker, nextDefender);
           }}
           style={{ background: 'var(--bg-base)', border: '1px solid rgba(0,240,255,0.2)', color: 'var(--text-primary)', padding: '4px 8px', borderRadius: 4, fontFamily: 'var(--font-mono)', fontSize: '0.62rem', outline: 'none', cursor: 'pointer' }}
         >
           {[2, 3, 4, 5, 6].map((s) => <option key={s} value={s}>{`${s}x${s}`}</option>)}
         </select>
-        <button className="btn btn-cyan" onClick={fetchNash} disabled={loading.nash}>
+        <button className="btn btn-cyan" onClick={() => fetchNash(attackerMatrix, defenderMatrix)} disabled={loading.nash}>
           {t('matrix.recompute')}
         </button>
       </div>

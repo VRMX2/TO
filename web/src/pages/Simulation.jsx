@@ -14,16 +14,16 @@ import {
    GAME THEORY CORE
 ═══════════════════════════════════════════════════════ */
 const ATTACK_STRATEGIES = [
-  { id: 'A1', name: 'SQL Injection', icon: '⬡', color: '#ff3b30', cost: 2, damage: [5, 2, -1, 4] },
-  { id: 'A2', name: 'DDoS Flood', icon: '⬡', color: '#ff6b35', cost: 4, damage: [4, 6, 8, 3] },
-  { id: 'A3', name: 'Zero-Day Exploit', icon: '⬡', color: '#ff3b30', cost: 6, damage: [-3, 1, 7, 2] },
-  { id: 'A4', name: 'Phishing APT', icon: '⬡', color: '#ff8c00', cost: 3, damage: [2, -2, 5, 0] },
+  { id: 'A1', icon: '⬡', color: '#ff3b30', cost: 2, damage: [5, 2, -1, 4] },
+  { id: 'A2', icon: '⬡', color: '#ff6b35', cost: 4, damage: [4, 6, 8, 3] },
+  { id: 'A3', icon: '⬡', color: '#ff3b30', cost: 6, damage: [-3, 1, 7, 2] },
+  { id: 'A4', icon: '⬡', color: '#ff8c00', cost: 3, damage: [2, -2, 5, 0] },
 ];
 const DEFENSE_STRATEGIES = [
-  { id: 'D1', name: 'Firewall', icon: '⬡', color: '#00f0ff', effect: 0 },
-  { id: 'D2', name: 'Intrusion Det.', icon: '⬡', color: '#00d4e0', effect: 1 },
-  { id: 'D3', name: 'Patch System', icon: '⬡', color: '#00f0ff', effect: 2 },
-  { id: 'D4', name: 'Honey Pot', icon: '⬡', color: '#00b4c8', effect: 3 },
+  { id: 'D1', icon: '⬡', color: '#00f0ff', effect: 0 },
+  { id: 'D2', icon: '⬡', color: '#00d4e0', effect: 1 },
+  { id: 'D3', icon: '⬡', color: '#00f0ff', effect: 2 },
+  { id: 'D4', icon: '⬡', color: '#00b4c8', effect: 3 },
 ];
 const PAYOFF = [
   [5, 2, -1, 4],
@@ -61,7 +61,7 @@ const LINKS = [
   ['attacker', 'fw'], ['attacker', 'epB'], ['attacker', 'epA'],
 ];
 
-function NetworkSVG({ attackingNode, defendingNode, packets, nodeStates }) {
+function NetworkSVG({ attackingNode, defendingNode, packets, nodeStates, nodeLabelOverrides }) {
   const getNodeColor = (id) => {
     const state = nodeStates[id];
     if (state === 'compromised') return '#ff3b30';
@@ -104,7 +104,7 @@ function NetworkSVG({ attackingNode, defendingNode, packets, nodeStates }) {
             <circle cx={n.x} cy={n.y} r={r} fill={color} opacity={0.2} stroke={color} strokeWidth={1.5} />
             <circle cx={n.x} cy={n.y} r={r - 5} fill={color} />
             <text x={n.x} y={n.y + r + 13} textAnchor="middle" fill={color} fontSize={9}
-              fontFamily="var(--font-mono)" opacity={0.85}>{n.label}</text>
+              fontFamily="var(--font-mono)" opacity={0.85}>{nodeLabelOverrides?.[n.id] || n.label}</text>
           </g>
         );
       })}
@@ -117,26 +117,18 @@ function NetworkSVG({ attackingNode, defendingNode, packets, nodeStates }) {
 ═══════════════════════════════════════════════════════ */
 async function askClaude(simState) {
   const { round, attStrat, defStrat, payoff, threat, coverage, history, mixedNash } = simState;
-  const prompt = `You are an AI security analyst embedded in a real-time cyber-security game-theory simulation.
-
-Current simulation state (Round ${round}/20):
-- Attacker played: ${attStrat.name} (strategy ${attStrat.id})
-- Defender played: ${defStrat.name} (strategy ${defStrat.id})
-- Payoff this round: ${payoff > 0 ? '+' + payoff : payoff} (positive = attacker wins)
-- Threat level: ${threat}%
-- Defense coverage: ${coverage}%
-- Nash mixed equilibrium: Attacker plays ${ATTACK_STRATEGIES.map((_, i) => `A${i + 1}=${(mixedNash.p[i] * 100).toFixed(0)}%`).join(', ')}
-- Recent history: ${history.slice(-3).map(h => `[R${h.round}: ${h.att}vs${h.def}→${h.payoff > 0 ? '+' : ''}${h.payoff}]`).join(' ')}
-
-Give a concise 2-3 sentence tactical analysis: what just happened, whether either player deviated from Nash equilibrium, and one specific recommendation for the defender next round. Be precise about game theory concepts. No bullet points.`;
-
-  const response = await fetch('/api/claude/v1/messages', {
+  const response = await fetch('/api/ai/round-advice', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 180,
-      messages: [{ role: 'user', content: prompt }]
+      round,
+      attacker: attStrat.name,
+      defender: defStrat.name,
+      payoff,
+      threat,
+      coverage,
+      history: history.slice(-5),
+      mixedNash
     })
   });
   const data = await response.json();
@@ -147,90 +139,14 @@ Give a concise 2-3 sentence tactical analysis: what just happened, whether eithe
    MAIN SIMULATION PAGE
 ═══════════════════════════════════════════════════════ */
 export default function Simulation() {
-  const { language } = useI18n();
-  const i18n = {
-    en: {
-      title: 'ADVANCED THREAT SIMULATION',
-      run: 'RUN',
-      restart: 'RESTART',
-      pause: 'PAUSE',
-      step: 'STEP',
-      reset: 'RESET',
-      speed: 'SPEED',
-      network: 'NETWORK TOPOLOGY',
-      live: '● LIVE',
-      idle: '○ IDLE',
-      manualPicker: 'MANUAL STRATEGY PICKER',
-      attacker: 'ATTACKER',
-      defender: 'DEFENDER',
-      score: 'CUMULATIVE SCORE',
-      attackerTotal: 'ATTACKER TOTAL',
-      defenderTotal: 'DEFENDER TOTAL',
-      history: 'ROUND HISTORY',
-      noRounds: 'No rounds played yet',
-      aiMonitor: 'AI DEFENSE MONITOR',
-      aiAnalysis: 'CLAUDE AI ANALYSIS',
-      simLog: 'SIMULATION LOG',
-      lastRound: 'LAST ROUND DETAIL',
-      aiSubtitle: 'Real-time game-theoretic AI advisor',
-      aiThinking: 'Analyzing round data...',
-      aiPlaceholder: 'AI tactical analysis will appear here after Round 1. Claude analyzes strategy alignment with Nash equilibrium and provides defender recommendations.',
-    },
-    fr: {
-      title: 'SIMULATION AVANCEE DES MENACES',
-      run: 'DEMARRER',
-      restart: 'REDEMARRER',
-      pause: 'PAUSE',
-      step: 'PAS',
-      reset: 'REINITIALISER',
-      speed: 'VITESSE',
-      network: 'TOPOLOGIE RESEAU',
-      live: '● EN DIRECT',
-      idle: '○ INACTIF',
-      manualPicker: 'SELECTION MANUELLE',
-      attacker: 'ATTAQUANT',
-      defender: 'DEFENSEUR',
-      score: 'SCORE CUMULE',
-      attackerTotal: 'TOTAL ATTAQUANT',
-      defenderTotal: 'TOTAL DEFENSEUR',
-      history: 'HISTORIQUE DES TOURS',
-      noRounds: 'Aucun tour joue',
-      aiMonitor: 'MONITEUR IA DEFENSE',
-      aiAnalysis: 'ANALYSE IA CLAUDE',
-      simLog: 'JOURNAL DE SIMULATION',
-      lastRound: 'DETAIL DU DERNIER TOUR',
-      aiSubtitle: 'Conseiller IA en theorie des jeux en temps reel',
-      aiThinking: 'Analyse des donnees du tour...',
-      aiPlaceholder: 'L analyse tactique IA apparaitra apres le tour 1. Claude evalue l alignement strategique avec Nash et propose des recommandations de defense.',
-    },
-    ar: {
-      title: 'محاكاة متقدمة للتهديدات',
-      run: 'تشغيل',
-      restart: 'اعادة التشغيل',
-      pause: 'ايقاف مؤقت',
-      step: 'خطوة',
-      reset: 'اعادة تعيين',
-      speed: 'السرعة',
-      network: 'طوبولوجيا الشبكة',
-      live: '● مباشر',
-      idle: '○ خامل',
-      manualPicker: 'اختيار الاستراتيجية اليدوي',
-      attacker: 'المهاجم',
-      defender: 'المدافع',
-      score: 'النتيجة التراكمية',
-      attackerTotal: 'مجموع المهاجم',
-      defenderTotal: 'مجموع المدافع',
-      history: 'سجل الجولات',
-      noRounds: 'لا توجد جولات بعد',
-      aiMonitor: 'مراقبة الدفاع بالذكاء الاصطناعي',
-      aiAnalysis: 'تحليل كلود',
-      simLog: 'سجل المحاكاة',
-      lastRound: 'تفاصيل اخر جولة',
-      aiSubtitle: 'مستشار ذكاء اصطناعي فوري بنظرية الالعاب',
-      aiThinking: 'جاري تحليل بيانات الجولة...',
-      aiPlaceholder: 'سيظهر التحليل التكتيكي بعد الجولة الاولى. يقوم كلود بتحليل توافق الاستراتيجيات مع توازن ناش ويقترح توصيات دفاعية.',
-    },
-  }[language] || {};
+  const { t } = useI18n();
+  const attackNames = t('common.attackStrategies') || [];
+  const defenseNames = t('common.defenseStrategies') || [];
+  const getAttackNameByIndex = (idx) => attackNames[idx] || `A${idx + 1}`;
+  const getDefenseNameByIndex = (idx) => defenseNames[idx] || `D${idx + 1}`;
+  const getAttackNameById = (id) => getAttackNameByIndex(Math.max(0, ATTACK_STRATEGIES.findIndex((s) => s.id === id)));
+  const getDefenseNameById = (id) => getDefenseNameByIndex(Math.max(0, DEFENSE_STRATEGIES.findIndex((s) => s.id === id)));
+  const nodeLabelOverrides = { fw: getDefenseNameByIndex(0) };
   const [running, setRunning] = useState(false);
   const [round, setRound] = useState(0);
   const [maxRounds] = useState(20);
@@ -314,6 +230,8 @@ export default function Simulation() {
     const payoff = PAYOFF[attIdx][defIdx];
     const attS = ATTACK_STRATEGIES[attIdx];
     const defS = DEFENSE_STRATEGIES[defIdx];
+    const attName = getAttackNameByIndex(attIdx);
+    const defName = getDefenseNameByIndex(defIdx);
 
     setCurrentAtt(attS.id.toLowerCase().replace(' ', ''));
     setCurrentDef(defS.id.toLowerCase().replace(' ', ''));
@@ -349,7 +267,7 @@ export default function Simulation() {
       def: parseFloat((s.def + (payoff < 0 ? Math.abs(payoff) : 0)).toFixed(1))
     }));
 
-    const newHist = [...hist, { round: roundNum, att: attS.id, def: defS.id, payoff, attName: attS.name, defName: defS.name }];
+    const newHist = [...hist, { round: roundNum, att: attS.id, def: defS.id, payoff, attName, defName }];
 
     setChartData(prev => [
       ...prev,
@@ -363,7 +281,7 @@ export default function Simulation() {
 
     setHistory(newHist);
     const color = payoff > 3 ? 'red' : payoff < 0 ? 'green' : 'amber';
-    addLog(`R${roundNum}: ${attS.name} vs ${defS.name} → payoff ${payoff > 0 ? '+' : ''}${payoff}`, color);
+    addLog(`R${roundNum}: ${attName} vs ${defName} → payoff ${payoff > 0 ? '+' : ''}${payoff}`, color);
 
     // Ask Claude every 4 rounds
     if (roundNum % 4 === 0 || roundNum === 1) {
@@ -373,7 +291,7 @@ export default function Simulation() {
       askClaude({
         round: roundNum, attStrat: attS, defStrat: defS, payoff,
         threat: threatLevel, coverage,
-        history: newHist, mixedNash: { p: nashP, q: nashQ }
+        history: newHist, mixedNash: { p: nashP, q: nashQ, attackNames }
       }).then(text => {
         setAiAnalysis(text);
         setAiLoading(false);
@@ -385,7 +303,7 @@ export default function Simulation() {
     }
 
     return newHist;
-  }, [mode, nashP, nashQ, nashV, manualAtt, manualDef, animatePackets, addLog, threatLevel, coverage]);
+  }, [mode, nashP, nashQ, nashV, manualAtt, manualDef, animatePackets, addLog, threatLevel, coverage, attackNames, defenseNames]);
 
   useEffect(() => {
     if (!running) { clearTimeout(timerRef.current); return; }
@@ -431,12 +349,12 @@ export default function Simulation() {
         {/* ── CONTROL BAR ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', background: 'var(--bg-panel)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '0.75rem 1rem' }}>
           <Zap size={16} className="text-red" />
-          <span className="font-mono text-primary" style={{ fontSize: '0.8rem', letterSpacing: '0.08em' }}>{i18n.title}</span>
+          <span className="font-mono text-primary" style={{ fontSize: '0.8rem', letterSpacing: '0.08em' }}>{t('simulation.title')}</span>
           <div style={{ flex: 1 }} />
 
           {/* Mode */}
           <div style={{ display: 'flex', gap: '0.35rem' }}>
-            {[['mixed', 'MIXED NASH'], ['pure', 'RANDOM'], ['manual', 'MANUAL']].map(([v, lbl]) => (
+            {[['mixed', t('simulation.modeMixed')], ['pure', t('simulation.modeRandom')], ['manual', t('simulation.modeManual')]].map(([v, lbl]) => (
               <button key={v} onClick={() => setMode(v)}
                 style={{ ...pillBtn, background: mode === v ? 'rgba(0,240,255,0.15)' : 'rgba(255,255,255,0.04)', color: mode === v ? 'var(--accent-cyan)' : 'var(--text-muted)', border: `1px solid ${mode === v ? 'rgba(0,240,255,0.4)' : 'rgba(255,255,255,0.08)'}` }}>
                 {lbl}
@@ -446,7 +364,7 @@ export default function Simulation() {
 
           {/* Speed */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span className="font-mono text-muted" style={{ fontSize: '0.6rem' }}>{i18n.speed}</span>
+            <span className="font-mono text-muted" style={{ fontSize: '0.6rem' }}>{t('simulation.speed')}</span>
             <input type="range" min={400} max={3000} step={200} value={speed}
               onChange={e => setSpeed(+e.target.value)} style={{ width: 70, accentColor: 'var(--accent-cyan)' }} />
             <span className="font-mono text-secondary" style={{ fontSize: '0.6rem', width: 30 }}>{(speed / 1000).toFixed(1)}s</span>
@@ -455,20 +373,20 @@ export default function Simulation() {
           {/* Buttons */}
           {!running ? (
             <button onClick={handleStart} style={ctrlBtn('#00f0ff', 'rgba(0,240,255,0.15)')}>
-              <Play size={13} /> {round >= maxRounds ? i18n.restart : i18n.run}
+              <Play size={13} /> {round >= maxRounds ? t('simulation.restart') : t('simulation.run')}
             </button>
           ) : (
             <button onClick={handleStop} style={ctrlBtn('#ffd60a', 'rgba(255,214,10,0.12)')}>
-              <Square size={13} /> {i18n.pause}
+              <Square size={13} /> {t('simulation.pause')}
             </button>
           )}
           {mode === 'manual' && !running && (
             <button onClick={handleManualRound} disabled={round >= maxRounds} style={ctrlBtn('#a78bfa', 'rgba(167,139,250,0.12)')}>
-              <ChevronRight size={13} /> {i18n.step}
+              <ChevronRight size={13} /> {t('simulation.step')}
             </button>
           )}
           <button onClick={handleReset} style={ctrlBtn('#475569', 'rgba(255,255,255,0.05)')}>
-            <RefreshCw size={11} /> {i18n.reset}
+            <RefreshCw size={11} /> {t('simulation.reset')}
           </button>
 
           {/* Round progress */}
@@ -476,7 +394,7 @@ export default function Simulation() {
             <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2 }}>
               <div style={{ width: `${progress}%`, height: '100%', background: 'var(--accent-cyan)', borderRadius: 2, transition: 'width 0.3s' }} />
             </div>
-            <span className="font-mono text-secondary" style={{ fontSize: '0.62rem', whiteSpace: 'nowrap' }}>R {round}/{maxRounds}</span>
+            <span className="font-mono text-secondary" style={{ fontSize: '0.62rem', whiteSpace: 'nowrap' }}>{t('simulation.roundLabel')} {round}/{maxRounds}</span>
           </div>
         </div>
 
@@ -485,12 +403,12 @@ export default function Simulation() {
 
           {/* LEFT: Network + Manual selector */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <Panel color="cyan" title={i18n.network} badge={running ? i18n.live : i18n.idle} badgeColor={running ? '#00ff66' : 'var(--text-muted)'}>
+            <Panel color="cyan" title={t('simulation.network')} badge={running ? t('simulation.live') : t('simulation.idle')} badgeColor={running ? '#00ff66' : 'var(--text-muted)'}>
               <div style={{ height: 300 }}>
-                <NetworkSVG attackingNode={currentAtt} defendingNode={currentDef} packets={packets} nodeStates={nodeStates} />
+                <NetworkSVG attackingNode={currentAtt} defendingNode={currentDef} packets={packets} nodeStates={nodeStates} nodeLabelOverrides={nodeLabelOverrides} />
               </div>
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', flexWrap: 'wrap' }}>
-                {[['var(--accent-red)', 'Compromised'], ['var(--accent-green)', 'Defended'], ['#ffd60a', 'Alert'], ['var(--text-muted)', 'Neutral']].map(([c, l]) => (
+                {[['var(--accent-red)', t('simulation.compromised')], ['var(--accent-green)', t('simulation.defended')], ['#ffd60a', t('simulation.alert')], ['var(--text-muted)', t('simulation.neutral')]].map(([c, l]) => (
                   <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.58rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
                     <div style={{ width: 7, height: 7, background: c, borderRadius: '50%' }} />{l}
                   </div>
@@ -500,23 +418,23 @@ export default function Simulation() {
 
             {/* Manual Strategy Picker */}
             {mode === 'manual' && (
-              <Panel color="amber" title={i18n.manualPicker}>
+              <Panel color="amber" title={t('simulation.manualPicker')}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                   <div>
-                    <div className="text-red font-mono" style={{ fontSize: '0.6rem', marginBottom: '0.4rem' }}>{i18n.attacker}</div>
+                    <div className="text-red font-mono" style={{ fontSize: '0.6rem', marginBottom: '0.4rem' }}>{t('simulation.attacker')}</div>
                     {ATTACK_STRATEGIES.map((s, i) => (
                       <button key={i} onClick={() => setManualAtt(i)}
                         style={{ display: 'block', width: '100%', textAlign: 'left', marginBottom: 3, padding: '4px 8px', borderRadius: 4, fontFamily: 'var(--font-mono)', fontSize: '0.62rem', cursor: 'pointer', background: manualAtt === i ? 'rgba(255,59,48,0.15)' : 'rgba(255,255,255,0.03)', border: `1px solid ${manualAtt === i ? 'rgba(255,59,48,0.5)' : 'rgba(255,255,255,0.06)'}`, color: manualAtt === i ? 'var(--accent-red)' : 'var(--text-secondary)' }}>
-                        {s.id}: {s.name}
+                        {s.id}: {getAttackNameByIndex(i)}
                       </button>
                     ))}
                   </div>
                   <div>
-                    <div className="text-cyan font-mono" style={{ fontSize: '0.6rem', marginBottom: '0.4rem' }}>{i18n.defender}</div>
+                    <div className="text-cyan font-mono" style={{ fontSize: '0.6rem', marginBottom: '0.4rem' }}>{t('simulation.defender')}</div>
                     {DEFENSE_STRATEGIES.map((s, i) => (
                       <button key={i} onClick={() => setManualDef(i)}
                         style={{ display: 'block', width: '100%', textAlign: 'left', marginBottom: 3, padding: '4px 8px', borderRadius: 4, fontFamily: 'var(--font-mono)', fontSize: '0.62rem', cursor: 'pointer', background: manualDef === i ? 'rgba(0,240,255,0.15)' : 'rgba(255,255,255,0.03)', border: `1px solid ${manualDef === i ? 'rgba(0,240,255,0.5)' : 'rgba(255,255,255,0.06)'}`, color: manualDef === i ? 'var(--accent-cyan)' : 'var(--text-secondary)' }}>
-                        {s.id}: {s.name}
+                        {s.id}: {getDefenseNameByIndex(i)}
                       </button>
                     ))}
                   </div>
@@ -525,27 +443,27 @@ export default function Simulation() {
             )}
 
             {/* Score */}
-            <Panel color="green" title={i18n.score}>
+            <Panel color="green" title={t('simulation.score')}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <div style={{ textAlign: 'center', padding: '0.75rem', background: 'rgba(255,59,48,0.07)', borderRadius: 6, border: '1px solid rgba(255,59,48,0.2)' }}>
                   <div className="text-red font-mono" style={{ fontSize: '1.6rem', lineHeight: 1 }}>{score.att}</div>
-                  <div className="text-muted font-mono" style={{ fontSize: '0.55rem', marginTop: 4 }}>{i18n.attackerTotal}</div>
+                  <div className="text-muted font-mono" style={{ fontSize: '0.55rem', marginTop: 4 }}>{t('simulation.attackerTotal')}</div>
                 </div>
                 <div style={{ textAlign: 'center', padding: '0.75rem', background: 'rgba(0,240,255,0.07)', borderRadius: 6, border: '1px solid rgba(0,240,255,0.2)' }}>
                   <div className="text-cyan font-mono" style={{ fontSize: '1.6rem', lineHeight: 1 }}>{score.def}</div>
-                  <div className="text-muted font-mono" style={{ fontSize: '0.55rem', marginTop: 4 }}>{i18n.defenderTotal}</div>
+                  <div className="text-muted font-mono" style={{ fontSize: '0.55rem', marginTop: 4 }}>{t('simulation.defenderTotal')}</div>
                 </div>
               </div>
               <div style={{ marginTop: '0.75rem' }}>
-                <Meter label="THREAT LEVEL" value={threatLevel} color={threatLevel > 70 ? 'var(--accent-red)' : threatLevel > 40 ? 'var(--accent-amber)' : 'var(--accent-green)'} />
-                <Meter label="DEFENSE COV." value={coverage} color="var(--accent-cyan)" />
+                <Meter label={t('simulation.threatMeter')} value={threatLevel} color={threatLevel > 70 ? 'var(--accent-red)' : threatLevel > 40 ? 'var(--accent-amber)' : 'var(--accent-green)'} />
+                <Meter label={t('simulation.coverageMeter')} value={coverage} color="var(--accent-cyan)" />
               </div>
             </Panel>
           </div>
 
           {/* CENTER: Chart + Strategy probs */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <Panel color="cyan" title="PAYOFF CONVERGENCE" subtitle="Attacker vs Defender gain per round">
+            <Panel color="cyan" title={t('simulation.payoffConvergence')} subtitle={t('simulation.payoffConvergenceSubtitle')}>
               <div style={{ height: 220 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={chartData} margin={{ top: 5, right: 15, left: -20, bottom: 5 }}>
@@ -562,10 +480,10 @@ export default function Simulation() {
             </Panel>
 
             {/* Nash Equilibrium Probabilities */}
-            <Panel color="amber" title="NASH MIXED STRATEGY σ*" subtitle={`Game value v* = ${nashV.toFixed(3)}`}>
+            <Panel color="amber" title={t('simulation.nashMixedPanel')} subtitle={t('simulation.nashMixedSubtitle', { value: nashV.toFixed(3) })}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <div className="text-red font-mono" style={{ fontSize: '0.6rem', marginBottom: '0.5rem' }}>σ*_A (Attacker)</div>
+                  <div className="text-red font-mono" style={{ fontSize: '0.6rem', marginBottom: '0.5rem' }}>{t('simulation.attackerSigmaShort')}</div>
                   {nashP.map((prob, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: '0.35rem' }}>
                       <span className="font-mono text-muted" style={{ width: 18, fontSize: '0.58rem' }}>A{i + 1}</span>
@@ -577,7 +495,7 @@ export default function Simulation() {
                   ))}
                 </div>
                 <div>
-                  <div className="text-cyan font-mono" style={{ fontSize: '0.6rem', marginBottom: '0.5rem' }}>σ*_D (Defender)</div>
+                  <div className="text-cyan font-mono" style={{ fontSize: '0.6rem', marginBottom: '0.5rem' }}>{t('simulation.defenderSigmaShort')}</div>
                   {nashQ.map((prob, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: '0.35rem' }}>
                       <span className="font-mono text-muted" style={{ width: 18, fontSize: '0.58rem' }}>D{i + 1}</span>
@@ -592,11 +510,11 @@ export default function Simulation() {
             </Panel>
 
             {/* Round History Table */}
-            <Panel color="green" title={i18n.history} badge={`${history.length}`}>
+            <Panel color="green" title={t('simulation.history')} badge={`${history.length}`}>
               <div style={{ maxHeight: 160, overflowY: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.62rem' }}>
                   <thead>
-                    <tr>{['R', 'Attacker', 'Defender', 'Payoff', 'Result'].map(h => <th key={h} style={{ padding: '3px 6px', fontFamily: 'var(--font-mono)', fontSize: '0.56rem', color: 'var(--text-muted)', borderBottom: '1px solid rgba(255,255,255,0.07)', textAlign: 'left' }}>{h}</th>)}</tr>
+                    <tr>{t('simulation.historyHeaders').map((h) => <th key={h} style={{ padding: '3px 6px', fontFamily: 'var(--font-mono)', fontSize: '0.56rem', color: 'var(--text-muted)', borderBottom: '1px solid rgba(255,255,255,0.07)', textAlign: 'left' }}>{h}</th>)}</tr>
                   </thead>
                   <tbody>
                     {[...history].reverse().slice(0, 10).map((h, i) => (
@@ -606,15 +524,15 @@ export default function Simulation() {
                         <td style={{ padding: '3px 6px', color: 'var(--accent-cyan)' }}>{h.def}</td>
                         <td style={{ padding: '3px 6px', fontFamily: 'var(--font-mono)', color: h.payoff > 0 ? 'var(--accent-red)' : h.payoff < 0 ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>{h.payoff > 0 ? '+' : ''}{h.payoff}</td>
                         <td style={{ padding: '3px 6px' }}>
-                          {h.payoff > 0 ? <span style={{ fontSize: '0.52rem', color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>ATT WINS</span>
-                            : h.payoff < 0 ? <span style={{ fontSize: '0.52rem', color: 'var(--accent-green)', fontFamily: 'var(--font-mono)' }}>DEF WINS</span>
-                              : <span style={{ fontSize: '0.52rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>TIE</span>}
+                          {h.payoff > 0 ? <span style={{ fontSize: '0.52rem', color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{t('simulation.resultAtt')}</span>
+                            : h.payoff < 0 ? <span style={{ fontSize: '0.52rem', color: 'var(--accent-green)', fontFamily: 'var(--font-mono)' }}>{t('simulation.resultDef')}</span>
+                              : <span style={{ fontSize: '0.52rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{t('simulation.resultTie')}</span>}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                {history.length === 0 && <div className="text-muted font-mono" style={{ fontSize: '0.62rem', textAlign: 'center', padding: '1rem' }}>{i18n.noRounds}</div>}
+                {history.length === 0 && <div className="text-muted font-mono" style={{ fontSize: '0.62rem', textAlign: 'center', padding: '1rem' }}>{t('simulation.noRounds')}</div>}
               </div>
             </Panel>
           </div>
@@ -623,26 +541,26 @@ export default function Simulation() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
             {/* AI Monitor */}
-            <Panel color="cyan" title={i18n.aiMonitor} badge={i18n.live} badgeColor="#00ff66">
-              <Meter label="THREAT LEVEL" value={threatLevel} color={threatLevel > 70 ? 'var(--accent-red)' : threatLevel > 40 ? 'var(--accent-amber)' : 'var(--accent-green)'} />
-              <Meter label="DEFENSE COV." value={coverage} color="var(--accent-cyan)" />
+            <Panel color="cyan" title={t('simulation.aiMonitor')} badge={t('simulation.live')} badgeColor="#00ff66">
+              <Meter label={t('simulation.threatMeter')} value={threatLevel} color={threatLevel > 70 ? 'var(--accent-red)' : threatLevel > 40 ? 'var(--accent-amber)' : 'var(--accent-green)'} />
+              <Meter label={t('simulation.coverageMeter')} value={coverage} color="var(--accent-cyan)" />
             </Panel>
 
             {/* Claude AI Analysis */}
-            <Panel color="amber" title={i18n.aiAnalysis} subtitle={i18n.aiSubtitle} badge={aiLoading ? '⟳ THINKING' : round > 0 ? '● READY' : i18n.idle}>
+            <Panel color="amber" title={t('simulation.aiAnalysis')} subtitle={t('simulation.aiSubtitle')} badge={aiLoading ? t('simulation.statusThinking') : round > 0 ? t('simulation.statusReady') : t('simulation.idle')}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <Brain size={14} style={{ color: 'var(--accent-amber)', flexShrink: 0, marginTop: 2 }} />
                 <div>
                   {aiLoading ? (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent-amber)', animation: 'pulse 1s infinite' }} />
-                      <span className="font-mono text-amber" style={{ fontSize: '0.65rem' }}>{i18n.aiThinking}</span>
+                      <span className="font-mono text-amber" style={{ fontSize: '0.65rem' }}>{t('simulation.aiThinking')}</span>
                     </div>
                   ) : aiAnalysis ? (
                     <p style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', lineHeight: 1.7, margin: 0, fontFamily: 'var(--font-mono)' }}>{aiAnalysis}</p>
                   ) : (
                     <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0, fontFamily: 'var(--font-mono)' }}>
-                      {i18n.aiPlaceholder}
+                      {t('simulation.aiPlaceholder')}
                     </p>
                   )}
                 </div>
@@ -652,17 +570,26 @@ export default function Simulation() {
                   if (history.length === 0) return;
                   setAiLoading(true);
                   const last = history[history.length - 1];
-                  askClaude({ round, attStrat: ATTACK_STRATEGIES.find(s => s.id === last.att), defStrat: DEFENSE_STRATEGIES.find(s => s.id === last.def), payoff: last.payoff, threat: threatLevel, coverage, history, mixedNash: { p: nashP, q: nashQ } })
+                  askClaude({
+                    round,
+                    attStrat: { ...(ATTACK_STRATEGIES.find((s) => s.id === last.att) || {}), name: getAttackNameById(last.att) },
+                    defStrat: { ...(DEFENSE_STRATEGIES.find((s) => s.id === last.def) || {}), name: getDefenseNameById(last.def) },
+                    payoff: last.payoff,
+                    threat: threatLevel,
+                    coverage,
+                    history,
+                    mixedNash: { p: nashP, q: nashQ, attackNames },
+                  })
                     .then(t => { setAiAnalysis(t); setAiLoading(false); })
                     .catch(() => setAiLoading(false));
                 }} style={{ ...ctrlBtn('var(--accent-amber)', 'rgba(255,214,10,0.1)'), marginTop: '0.5rem', width: '100%', justifyContent: 'center', fontSize: '0.62rem' }}>
-                  <Brain size={11} /> REQUEST AI ANALYSIS
+                  <Brain size={11} /> {t('simulation.requestAi')}
                 </button>
               )}
             </Panel>
 
             {/* Event Log */}
-            <Panel color="green" title={i18n.simLog} style={{ flex: 1 }}>
+            <Panel color="green" title={t('simulation.simLog')} style={{ flex: 1 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: 280, overflowY: 'auto' }}>
                 {logs.map(log => {
                   const clrMap = { cyan: 'var(--accent-cyan)', green: 'var(--accent-green)', amber: 'var(--accent-amber)', red: 'var(--accent-red)', secondary: 'var(--text-secondary)' };
@@ -678,7 +605,7 @@ export default function Simulation() {
 
             {/* Current Round Info */}
             {history.length > 0 && (
-              <Panel color="red" title={i18n.lastRound}>
+              <Panel color="red" title={t('simulation.lastRound')}>
                 {(() => {
                   const last = history[history.length - 1];
                   const attS = ATTACK_STRATEGIES.find(s => s.id === last.att);
@@ -686,19 +613,19 @@ export default function Simulation() {
                   return (
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                       <div style={{ padding: '0.6rem', background: 'rgba(255,59,48,0.07)', borderRadius: 5, border: '1px solid rgba(255,59,48,0.2)' }}>
-                        <div className="text-muted font-mono" style={{ fontSize: '0.55rem', marginBottom: 3 }}>ATTACKER PLAYED</div>
+                        <div className="text-muted font-mono" style={{ fontSize: '0.55rem', marginBottom: 3 }}>{t('simulation.lastAttackerPlayed')}</div>
                         <div className="text-red font-mono" style={{ fontSize: '0.72rem' }}>{last.att}</div>
-                        <div style={{ fontSize: '0.58rem', color: 'var(--text-secondary)' }}>{attS?.name}</div>
+                        <div style={{ fontSize: '0.58rem', color: 'var(--text-secondary)' }}>{getAttackNameById(last.att)}</div>
                         <div className="text-muted font-mono" style={{ fontSize: '0.52rem', marginTop: 4 }}>σ*: {(nashP[ATTACK_STRATEGIES.indexOf(attS)] * 100).toFixed(1)}%</div>
                       </div>
                       <div style={{ padding: '0.6rem', background: 'rgba(0,240,255,0.07)', borderRadius: 5, border: '1px solid rgba(0,240,255,0.2)' }}>
-                        <div className="text-muted font-mono" style={{ fontSize: '0.55rem', marginBottom: 3 }}>DEFENDER PLAYED</div>
+                        <div className="text-muted font-mono" style={{ fontSize: '0.55rem', marginBottom: 3 }}>{t('simulation.lastDefenderPlayed')}</div>
                         <div className="text-cyan font-mono" style={{ fontSize: '0.72rem' }}>{last.def}</div>
-                        <div style={{ fontSize: '0.58rem', color: 'var(--text-secondary)' }}>{defS?.name}</div>
+                        <div style={{ fontSize: '0.58rem', color: 'var(--text-secondary)' }}>{getDefenseNameById(last.def)}</div>
                         <div className="text-muted font-mono" style={{ fontSize: '0.52rem', marginTop: 4 }}>σ*: {(nashQ[DEFENSE_STRATEGIES.indexOf(defS)] * 100).toFixed(1)}%</div>
                       </div>
                       <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '0.5rem', background: last.payoff > 0 ? 'rgba(255,59,48,0.07)' : last.payoff < 0 ? 'rgba(0,255,102,0.07)' : 'rgba(255,255,255,0.03)', borderRadius: 5, border: `1px solid ${last.payoff > 0 ? 'rgba(255,59,48,0.25)' : last.payoff < 0 ? 'rgba(0,255,102,0.25)' : 'rgba(255,255,255,0.07)'}` }}>
-                        <span className="font-mono" style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>PAYOFF u_A = </span>
+                        <span className="font-mono" style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>{t('simulation.payoffUA')} </span>
                         <span className="font-mono" style={{ fontSize: '1.1rem', color: last.payoff > 0 ? 'var(--accent-red)' : last.payoff < 0 ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>{last.payoff > 0 ? '+' : ''}{last.payoff}</span>
                       </div>
                     </div>

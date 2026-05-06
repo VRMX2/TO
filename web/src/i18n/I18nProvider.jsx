@@ -33,7 +33,10 @@ export function I18nProvider({ children }) {
     const fallback = translations.en;
     const t = (key, params) => {
       const resolved = getNestedValue(dictionary, key) ?? getNestedValue(fallback, key) ?? key;
-      return interpolate(String(resolved), params);
+      if (typeof resolved === 'string') {
+        return interpolate(resolved, params);
+      }
+      return resolved;
     };
     return { language, setLanguage, t, isRtl: language === 'ar' };
   }, [language]);

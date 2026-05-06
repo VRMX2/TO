@@ -15,6 +15,10 @@ import {
 
 export default function Dashboard() {
   const { t } = useI18n();
+  const attackNames = t('common.attackStrategies') || [];
+  const defenseNames = t('common.defenseStrategies') || [];
+  const resolveAttackName = (id, fallback) => attackNames[Number(String(id).replace('A', '')) - 1] || fallback;
+  const resolveDefenseName = (id, fallback) => defenseNames[Number(String(id).replace('D', '')) - 1] || fallback;
   const simulateAttack = useGameStore(state => state.simulateAttack);
   const deployDefense = useGameStore(state => state.deployDefense);
   const attackerStrategies = useGameStore(state => state.attackerStrategies);
@@ -258,20 +262,22 @@ export default function Dashboard() {
   }, [nashData, paretoData, presetName, matrixSize]);
 
   // Load Nash on mount / scenario change
-  const fetchNash = useCallback(async () => {
+  const fetchNash = useCallback(async (attackerOverride = null, defenderOverride = null) => {
+    const currentA = attackerOverride || attackerMatrix;
+    const currentD = defenderOverride || defenderMatrix;
     setLoading(l => ({ ...l, nash: true }));
     addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: 'Computing Nash Equilibrium via Python engine...', color: 'secondary' });
     try {
       const [data, pareto] = await Promise.all([
-        computeNash(attackerMatrix, defenderMatrix),
-        getPareto(attackerMatrix, defenderMatrix),
+        computeNash(currentA, currentD),
+        getPareto(currentA, currentD),
       ]);
       setNashData(data);
       setParetoData(pareto?.pareto_profiles || []);
       setConvergenceData(data.convergence_data || []);
       // Update strategy probabilities in store
-      const attStrategies = ['SQL Injection', 'DDoS Flood', 'Zero-Day Exploit', 'Phishing APT'];
-      const defStrategies = ['Firewall', 'Intrusion Det.', 'Patch System', 'Honey Pot'];
+      const attStrategies = attackNames;
+      const defStrategies = defenseNames;
       updateNashResults({
         nashData: {
           attackerStrategies: data.attacker_strategy.map((p, i) => ({ id: `A${i+1}`, name: attStrategies[i] || `Attack ${i+1}`, prob: Math.round(p * 100) })),
@@ -287,7 +293,7 @@ export default function Dashboard() {
     } finally {
       setLoading(l => ({ ...l, nash: false }));
     }
-  }, [attackerMatrix, defenderMatrix, scenario]);
+  }, [attackerMatrix, defenderMatrix, scenario, attackNames, defenseNames]);
 
   useEffect(() => { fetchNash(); }, []);
 
@@ -392,13 +398,13 @@ export default function Dashboard() {
           <div style={{ marginBottom:'0.75rem' }}>
             <div className="font-mono" style={{ fontSize:'0.6rem', color:'var(--accent-red)', marginBottom:'0.4rem', letterSpacing:'0.08em' }}>ATTACKER σ*_A</div>
             {attackerStrategies.map((s, i) => (
-              <StratBar key={s.id} label={s.id} name={s.name} prob={s.prob} color="var(--accent-red)" />
+              <StratBar key={s.id} label={s.id} name={resolveAttackName(s.id, s.name)} prob={s.prob} color="var(--accent-red)" />
             ))}
           </div>
           <div>
             <div className="font-mono" style={{ fontSize:'0.6rem', color:'var(--accent-cyan)', marginBottom:'0.4rem', letterSpacing:'0.08em' }}>DEFENDER σ*_D</div>
             {defenderStrategies.map((s, i) => (
-              <StratBar key={s.id} label={s.id} name={s.name} prob={s.prob} color="var(--accent-cyan)" />
+              <StratBar key={s.id} label={s.id} name={resolveDefenseName(s.id, s.name)} prob={s.prob} color="var(--accent-cyan)" />
             ))}
           </div>
         </div>
