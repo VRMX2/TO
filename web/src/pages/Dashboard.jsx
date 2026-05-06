@@ -3,6 +3,7 @@ import Header from '../components/Header';
 import MatrixEditor from '../components/dashboard/MatrixEditor';
 import PresetManager from '../components/dashboard/PresetManager';
 import ExportPanel from '../components/dashboard/ExportPanel';
+import { useWebSocket } from '../hooks/useWebSocket';
 import { useGameStore } from '../store/gameStore';
 import { useGameAPI } from '../hooks/useGameAPI';
 import { jsPDF } from 'jspdf';
@@ -34,6 +35,7 @@ export default function Dashboard() {
     simulateAttack: simulateAttackAPI,
     deployDefense: deployDefenseAPI,
   } = useGameAPI();
+  const { connected: wsConnected, reconnectInSec } = useWebSocket();
 
   const [scenario, setScenario] = useState('standard');
   const [topology, setTopology] = useState('star');
@@ -351,7 +353,24 @@ export default function Dashboard() {
           </button>
         </div>
         <div className="controls-right">
-          <div style={{ display:'flex', alignItems:'center', gap:'0.5rem' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:'0.75rem' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'0.45rem' }}>
+              <div style={{
+                width:8,
+                height:8,
+                borderRadius:'50%',
+                background: wsConnected ? 'var(--accent-green)' : 'var(--accent-red)',
+                boxShadow: `0 0 6px ${wsConnected ? 'var(--accent-green)' : 'var(--accent-red)'}`,
+              }} />
+              <span className="font-mono" style={{ fontSize:'0.60rem', color: wsConnected ? 'var(--accent-green)' : 'var(--accent-red)' }}>
+                {wsConnected ? 'WS LIVE' : 'WS OFFLINE'}
+              </span>
+              {!wsConnected && reconnectInSec > 0 && (
+                <span className="font-mono" style={{ fontSize:'0.56rem', color:'var(--text-muted)' }}>
+                  reconnect in {reconnectInSec}s
+                </span>
+              )}
+            </div>
             <div style={{ width:8, height:8, borderRadius:'50%', background: nashData ? 'var(--accent-green)' : 'var(--accent-amber)', boxShadow: `0 0 6px ${nashData ? 'var(--accent-green)' : 'var(--accent-amber)'}` }} />
             <span className="font-mono" style={{ fontSize:'0.62rem', color: nashData ? 'var(--accent-green)' : 'var(--accent-amber)' }}>
               {nashData ? `v* = ${gameValue.toFixed(3)}` : 'CONNECTING...'}

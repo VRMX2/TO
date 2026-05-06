@@ -7,6 +7,7 @@ export const useWebSocket = () => {
   const addAILog = useGameStore(state => state.addAILog);
   const setThreatLevel = useGameStore(state => state.setThreatLevel);
   const [connected, setConnected] = useState(false);
+  const [reconnectInSec, setReconnectInSec] = useState(0);
 
   useEffect(() => {
     const buildWebSocketUrl = () => {
@@ -23,6 +24,7 @@ export const useWebSocket = () => {
 
         ws.current.onopen = () => {
           setConnected(true);
+          setReconnectInSec(0);
           addAILog({
             time: new Date().toLocaleTimeString('en-US', { hour12: false }),
             text: 'WebSocket connected — live threat stream active',
@@ -54,8 +56,16 @@ export const useWebSocket = () => {
 
         ws.current.onclose = () => {
           setConnected(false);
-          // Reconnect after 8 seconds
-          reconnectTimer.current = setTimeout(connectWS, 8000);
+          // Reconnect after 8 seconds with visible countdown.
+          const delaySec = 8;
+          setReconnectInSec(delaySec);
+          const countdown = setInterval(() => {
+            setReconnectInSec((prev) => (prev > 0 ? prev - 1 : 0));
+          }, 1000);
+          reconnectTimer.current = setTimeout(() => {
+            clearInterval(countdown);
+            connectWS();
+          }, delaySec * 1000);
         };
 
         ws.current.onerror = () => {
@@ -83,5 +93,5 @@ export const useWebSocket = () => {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return connected;
+  return { connected, reconnectInSec };
 };
