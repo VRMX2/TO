@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import Header from '../components/Header';
+import { useI18n } from '../i18n/I18nProvider';
 import {
   FileText, Brain, Download, RefreshCw, CheckCircle,
   AlertTriangle, Shield, Zap, Target, Activity,
@@ -81,6 +82,57 @@ async function generateFullReport(params) {
    MAIN REPORT COMPONENT
 ══════════════════════════════════════════════════ */
 export default function Report() {
+  const { language } = useI18n();
+  const i18n = {
+    en: {
+      title: 'AI EXECUTIVE BRIEFING',
+      subtitle: 'Claude-powered analysis · Game-theoretic security intelligence · Export-ready',
+      powered: 'POWERED BY CLAUDE AI',
+      config: 'REPORT CONFIGURATION',
+      nashSummary: 'NASH EQUILIBRIUM SUMMARY',
+      threat: 'THREAT ASSESSMENT',
+      generate: 'GENERATE AI REPORT',
+      generating: 'GENERATING...',
+      matrixRef: 'PAYOFF MATRIX REFERENCE',
+      generated: 'REPORT GENERATED',
+      export: 'EXPORT',
+      emptyTitle: 'NO REPORT GENERATED YET',
+      emptyHelp: 'Configure your parameters above and click Generate AI Report to produce a full executive security briefing powered by Claude game-theoretic analysis.',
+      emptyTags: ['Nash Equilibrium Analysis', 'Threat Vectors', 'Defense Recommendations', 'Executive Summary', 'Export-Ready'],
+    },
+    fr: {
+      title: 'BRIEFING EXECUTIF IA',
+      subtitle: 'Analyse par Claude · Intelligence securite par theorie des jeux · Exportable',
+      powered: 'PROPULSE PAR CLAUDE IA',
+      config: 'CONFIGURATION RAPPORT',
+      nashSummary: 'RESUME EQUILIBRE DE NASH',
+      threat: 'EVALUATION MENACE',
+      generate: 'GENERER RAPPORT IA',
+      generating: 'GENERATION...',
+      matrixRef: 'REFERENCE MATRICE DE GAIN',
+      generated: 'RAPPORT GENERE',
+      export: 'EXPORTER',
+      emptyTitle: 'AUCUN RAPPORT GENERE',
+      emptyHelp: 'Configurez les parametres ci-dessus et cliquez sur Generer rapport IA pour produire un briefing executif complet base sur l analyse de Claude.',
+      emptyTags: ['Analyse de Nash', 'Vecteurs de menace', 'Recommandations defense', 'Resume executif', 'Pret a exporter'],
+    },
+    ar: {
+      title: 'موجز تنفيذي بالذكاء الاصطناعي',
+      subtitle: 'تحليل مدعوم بكلود · ذكاء امني بنظرية الالعاب · جاهز للتصدير',
+      powered: 'مدعوم بواسطة كلود',
+      config: 'اعدادات التقرير',
+      nashSummary: 'ملخص توازن ناش',
+      threat: 'تقييم التهديد',
+      generate: 'انشاء تقرير بالذكاء الاصطناعي',
+      generating: 'جاري الانشاء...',
+      matrixRef: 'مرجع مصفوفة العوائد',
+      generated: 'تم انشاء التقرير',
+      export: 'تصدير',
+      emptyTitle: 'لا يوجد تقرير حتى الان',
+      emptyHelp: 'قم بضبط الاعدادات اعلاه ثم اضغط انشاء تقرير بالذكاء الاصطناعي للحصول على موجز امني تنفيذي كامل مدعوم بتحليل كلود.',
+      emptyTags: ['تحليل توازن ناش', 'متجهات التهديد', 'توصيات الدفاع', 'ملخص تنفيذي', 'جاهز للتصدير'],
+    },
+  }[language] || {};
   const [scenario, setScenario] = useState('Standard 4×4 Zero-Sum');
   const [rounds, setRounds] = useState(50);
   const [generating, setGenerating] = useState(false);
@@ -201,17 +253,17 @@ export default function Report() {
             <FileText size={22} style={{ color: 'var(--accent-green)' }} />
             <div>
               <h2 className="text-primary font-mono" style={{ fontSize: '1rem', margin: 0, letterSpacing: '0.1em' }}>
-                AI EXECUTIVE BRIEFING
+                {i18n.title}
               </h2>
               <p className="text-secondary" style={{ fontSize: '0.72rem', margin: 0, marginTop: 2 }}>
-                Claude-powered analysis · Game-theoretic security intelligence · Export-ready
+                {i18n.subtitle}
               </p>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Brain size={13} style={{ color: 'var(--accent-amber)' }} />
             <span className="font-mono" style={{ fontSize: '0.6rem', color: 'var(--accent-amber)' }}>
-              POWERED BY CLAUDE AI
+              {i18n.powered}
             </span>
           </div>
         </div>
@@ -220,7 +272,7 @@ export default function Report() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
 
           {/* Config Panel */}
-          <Panel color="cyan" title="REPORT CONFIGURATION" icon={<Cpu size={12} />}>
+          <Panel color="cyan" title={i18n.config} icon={<Cpu size={12} />}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
               <ConfigRow label="SCENARIO">
                 <select
@@ -267,8 +319,8 @@ export default function Report() {
                 }}
               >
                 {generating
-                  ? <><RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> GENERATING...</>
-                  : <><Brain size={13} /> GENERATE AI REPORT</>}
+                  ? <><RefreshCw size={13} style={{ animation: 'spin 1s linear infinite' }} /> {i18n.generating}</>
+                  : <><Brain size={13} /> {i18n.generate}</>}
               </button>
               {generating && phase && (
                 <p className="font-mono" style={{ fontSize: '0.58rem', color: 'var(--accent-amber)', margin: 0, textAlign: 'center', opacity: 0.8 }}>
@@ -279,7 +331,7 @@ export default function Report() {
           </Panel>
 
           {/* Nash Summary */}
-          <Panel color="amber" title="NASH EQUILIBRIUM SUMMARY" icon={<Target size={12} />}>
+          <Panel color="amber" title={i18n.nashSummary} icon={<Target size={12} />}>
             <div style={{ marginBottom: '0.6rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                 <span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>GAME VALUE v*</span>
@@ -305,7 +357,7 @@ export default function Report() {
           </Panel>
 
           {/* Threat Assessment */}
-          <Panel color="green" title="THREAT ASSESSMENT" icon={<Activity size={12} />}>
+          <Panel color="green" title={i18n.threat} icon={<Activity size={12} />}>
             {threatData ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {/* Risk badge */}
@@ -346,7 +398,7 @@ export default function Report() {
         </div>
 
         {/* Payoff Matrix Reference */}
-        <Panel color="cyan" title="PAYOFF MATRIX REFERENCE" icon={<Lock size={12} />}>
+        <Panel color="cyan" title={i18n.matrixRef} icon={<Lock size={12} />}>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -412,14 +464,14 @@ export default function Report() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <CheckCircle size={14} style={{ color: 'var(--accent-green)' }} />
                 <span className="font-mono" style={{ fontSize: '0.68rem', color: 'var(--accent-green)', letterSpacing: '0.08em' }}>
-                  REPORT GENERATED — {sections.length} SECTIONS
+                  {i18n.generated} — {sections.length} SECTIONS
                 </span>
               </div>
               <button
                 onClick={handleExport}
                 style={actionBtn('var(--accent-green)', 'rgba(0,255,102,0.1)')}
               >
-                <Download size={13} /> EXPORT {exportFormat.toUpperCase()}
+                <Download size={13} /> {i18n.export} {exportFormat.toUpperCase()}
               </button>
             </div>
 
@@ -498,15 +550,14 @@ export default function Report() {
             <FileText size={42} style={{ color: 'var(--accent-green)', opacity: 0.4 }} />
             <div style={{ textAlign: 'center' }}>
               <h3 className="font-mono text-primary" style={{ fontSize: '0.85rem', margin: 0, letterSpacing: '0.08em' }}>
-                NO REPORT GENERATED YET
+                {i18n.emptyTitle}
               </h3>
               <p className="text-secondary" style={{ fontSize: '0.68rem', marginTop: '0.4rem', maxWidth: 400, lineHeight: 1.6 }}>
-                Configure your parameters above and click <strong>Generate AI Report</strong> to produce a
-                full executive security briefing powered by Claude's game-theoretic analysis.
+                {i18n.emptyHelp}
               </p>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
-              {['Nash Equilibrium Analysis', 'Threat Vectors', 'Defense Recommendations', 'Executive Summary', 'Export-Ready'].map(tag => (
+              {(i18n.emptyTags || []).map(tag => (
                 <span key={tag} style={{
                   padding: '3px 8px',
                   border: '1px solid rgba(0,255,102,0.25)',

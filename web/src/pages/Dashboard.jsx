@@ -4,6 +4,7 @@ import MatrixEditor from '../components/dashboard/MatrixEditor';
 import PresetManager from '../components/dashboard/PresetManager';
 import ExportPanel from '../components/dashboard/ExportPanel';
 import { useWebSocket } from '../hooks/useWebSocket';
+import { useI18n } from '../i18n/I18nProvider';
 import { useGameStore } from '../store/gameStore';
 import { useGameAPI } from '../hooks/useGameAPI';
 import { jsPDF } from 'jspdf';
@@ -13,6 +14,7 @@ import {
 } from 'recharts';
 
 export default function Dashboard() {
+  const { t } = useI18n();
   const simulateAttack = useGameStore(state => state.simulateAttack);
   const deployDefense = useGameStore(state => state.deployDefense);
   const attackerStrategies = useGameStore(state => state.attackerStrategies);
@@ -331,25 +333,25 @@ export default function Dashboard() {
       {/* Controls Bar */}
       <div className="controls-row">
         <div className="controls-left">
-          <ConfigSelect label="Scenario" value={scenario} onChange={setScenario}
+          <ConfigSelect label={t('dashboard.scenario')} value={scenario} onChange={setScenario}
             options={[['standard','Standard 4×4'],['zero-sum','Zero-Sum'],['advanced','Advanced APT']]} />
-          <ConfigSelect label="Topology" value={topology} onChange={setTopology}
+          <ConfigSelect label={t('dashboard.topology')} value={topology} onChange={setTopology}
             options={[['star','Star Network'],['mesh','Mesh Network'],['ring','Ring Network']]} />
-          <ConfigSelect label="AI Mode" value={aiMode} onChange={setAiMode}
+          <ConfigSelect label={t('dashboard.aiMode')} value={aiMode} onChange={setAiMode}
             options={[['rl','Reinforcement Learning'],['static','Static Optimal'],['none','Disabled']]} />
         </div>
         <div className="controls-center">
           <button className="btn btn-cyan" onClick={fetchNash} disabled={loading.nash} id="btn-compute-nash">
             {loading.nash ? <RefreshCw size={14} style={{animation:'spin 1s linear infinite'}} /> : <Target size={14} />}
-            {loading.nash ? 'Computing...' : 'Compute Nash'}
+            {loading.nash ? t('dashboard.computing') : t('dashboard.computeNash')}
           </button>
           <button className="btn btn-red" onClick={handleAttack} disabled={loading.attack} id="btn-simulate-attack">
             {loading.attack ? <RefreshCw size={14} style={{animation:'spin 1s linear infinite'}} /> : <Zap size={14} />}
-            {loading.attack ? 'Simulating...' : 'Simulate Attack'}
+            {loading.attack ? t('dashboard.simulating') : t('dashboard.simulateAttack')}
           </button>
           <button className="btn btn-green" onClick={handleDefense} disabled={loading.defense} id="btn-deploy-defense">
             {loading.defense ? <RefreshCw size={14} style={{animation:'spin 1s linear infinite'}} /> : <Shield size={14} />}
-            {loading.defense ? 'Deploying...' : 'Deploy Defense'}
+            {loading.defense ? t('dashboard.deploying') : t('dashboard.deployDefense')}
           </button>
         </div>
         <div className="controls-right">
@@ -363,17 +365,17 @@ export default function Dashboard() {
                 boxShadow: `0 0 6px ${wsConnected ? 'var(--accent-green)' : 'var(--accent-red)'}`,
               }} />
               <span className="font-mono" style={{ fontSize:'0.60rem', color: wsConnected ? 'var(--accent-green)' : 'var(--accent-red)' }}>
-                {wsConnected ? 'WS LIVE' : 'WS OFFLINE'}
+                {wsConnected ? t('dashboard.wsLive') : t('dashboard.wsOffline')}
               </span>
               {!wsConnected && reconnectInSec > 0 && (
                 <span className="font-mono" style={{ fontSize:'0.56rem', color:'var(--text-muted)' }}>
-                  reconnect in {reconnectInSec}s
+                  {t('dashboard.reconnectIn', { sec: reconnectInSec })}
                 </span>
               )}
             </div>
             <div style={{ width:8, height:8, borderRadius:'50%', background: nashData ? 'var(--accent-green)' : 'var(--accent-amber)', boxShadow: `0 0 6px ${nashData ? 'var(--accent-green)' : 'var(--accent-amber)'}` }} />
             <span className="font-mono" style={{ fontSize:'0.62rem', color: nashData ? 'var(--accent-green)' : 'var(--accent-amber)' }}>
-              {nashData ? `v* = ${gameValue.toFixed(3)}` : 'CONNECTING...'}
+              {nashData ? `v* = ${gameValue.toFixed(3)}` : t('dashboard.connecting')}
             </span>
           </div>
         </div>
@@ -575,7 +577,7 @@ export default function Dashboard() {
         <div className="panel" style={{ flexShrink:0 }}>
           <div className="panel-header">
             <div className="panel-title"><Cpu size={14} />MATRIX EDITOR</div>
-            <span style={{ fontSize:'0.55rem', fontFamily:'var(--font-mono)', color:'var(--text-muted)' }}>2 PLAYERS</span>
+            <span style={{ fontSize:'0.55rem', fontFamily:'var(--font-mono)', color:'var(--text-muted)' }}>{t('dashboard.twoPlayers')}</span>
           </div>
           <PresetManager
             presetName={presetName}
@@ -675,14 +677,14 @@ export default function Dashboard() {
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000 }}>
           <div style={{ width:340, background:'var(--bg-panel)', border:'1px solid rgba(255,59,48,0.35)', borderRadius:8, padding:'0.9rem' }}>
             <div className="font-mono" style={{ color:'var(--accent-red)', fontSize:'0.7rem', marginBottom:'0.5rem', letterSpacing:'0.07em' }}>
-              CONFIRM DELETE
+              {t('dashboard.confirmDelete')}
             </div>
             <div style={{ color:'var(--text-secondary)', fontSize:'0.68rem', marginBottom:'0.9rem', lineHeight:1.5 }}>
-              Delete preset <span className="font-mono" style={{ color:'var(--accent-amber)' }}>{selectedPreset}</span>? This action cannot be undone.
+              {t('dashboard.deletePresetQuestion', { name: selectedPreset })}
             </div>
             <div style={{ display:'flex', justifyContent:'flex-end', gap:'0.5rem' }}>
-              <button className="btn btn-cyan" onClick={() => setConfirmDeleteOpen(false)}>Cancel</button>
-              <button className="btn btn-red" onClick={async () => { await removePreset(selectedPreset); setConfirmDeleteOpen(false); }}>Delete</button>
+              <button className="btn btn-cyan" onClick={() => setConfirmDeleteOpen(false)}>{t('dashboard.cancel')}</button>
+              <button className="btn btn-red" onClick={async () => { await removePreset(selectedPreset); setConfirmDeleteOpen(false); }}>{t('dashboard.delete')}</button>
             </div>
           </div>
         </div>

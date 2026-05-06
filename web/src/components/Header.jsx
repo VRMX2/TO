@@ -1,18 +1,19 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShieldAlert, Activity, Hexagon } from 'lucide-react';
+import { Hexagon } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
+import { useI18n } from '../i18n/I18nProvider';
 
 export default function Header() {
-  const nashEngineActive = useGameStore((state) => state.nashEngineActive);
   const threatLevel = useGameStore((state) => state.threatLevel);
   const location = useLocation();
+  const { t, language, setLanguage } = useI18n();
 
   const tabs = [
-    { name: 'Dashboard', path: '/' },
-    { name: 'Analysis', path: '/analysis' },
-    { name: 'Simulate', path: '/simulate' },
-    { name: 'Report', path: '/report' }
+    { name: t('nav.dashboard'), path: '/' },
+    { name: t('nav.analysis'), path: '/analysis' },
+    { name: t('nav.simulate'), path: '/simulate' },
+    { name: t('nav.report'), path: '/report' }
   ];
 
   return (
@@ -24,7 +25,7 @@ export default function Header() {
         <div>
           <h1 className="text-primary m-0" style={{ fontSize: '1.25rem', margin: 0 }}>CyberGameGT</h1>
           <p className="text-xs text-secondary m-0" style={{ letterSpacing: '0.1em', marginTop: '0.25rem', fontFamily: 'var(--font-mono)' }}>
-            AI-DRIVEN GAME THEORETIC ADAPTIVE DEFENSE
+            {t('app.tagline')}
           </p>
         </div>
       </div>
@@ -36,7 +37,7 @@ export default function Header() {
           padding: '0.25rem 1rem', background: 'rgba(0, 255, 102, 0.05)'
         }}>
           <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-green)', boxShadow: '0 0 5px var(--accent-green)' }}></div>
-          <span className="text-xs font-mono text-green">NASH ENGINE ACTIVE</span>
+          <span className="text-xs font-mono text-green">{t('app.nashEngineActive')}</span>
         </div>
 
         <div style={{ 
@@ -45,7 +46,28 @@ export default function Header() {
           padding: '0.25rem 1rem', background: 'rgba(255, 214, 10, 0.05)'
         }}>
           <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-amber)', boxShadow: '0 0 5px var(--accent-amber)' }}></div>
-          <span className="text-xs font-mono text-amber">THREAT LEVEL: {threatLevel > 60 ? 'HIGH' : threatLevel > 30 ? 'MEDIUM' : 'LOW'}</span>
+          <span className="text-xs font-mono text-amber">{t('app.threatLevel')}: {threatLevel > 60 ? t('app.high') : threatLevel > 30 ? t('app.medium') : t('app.low')}</span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          <span className="text-xs font-mono text-secondary">{t('app.language')}</span>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            style={{
+              background: 'var(--bg-base)',
+              border: '1px solid rgba(0,240,255,0.2)',
+              color: 'var(--text-primary)',
+              padding: '3px 6px',
+              borderRadius: 4,
+              fontFamily: 'var(--font-mono)',
+              fontSize: '0.72rem',
+            }}
+          >
+            <option value="en">English</option>
+            <option value="fr">Francais</option>
+            <option value="ar">العربية</option>
+          </select>
         </div>
 
         <nav style={{ display: 'flex', gap: '1rem', marginLeft: '1rem' }}>

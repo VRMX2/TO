@@ -1,4 +1,5 @@
 import React from 'react';
+import { useI18n } from '../../i18n/I18nProvider';
 
 export default function MatrixEditor({
   matrixSize,
@@ -13,10 +14,11 @@ export default function MatrixEditor({
   updateCell,
   syncZeroSum,
 }) {
+  const { t } = useI18n();
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
-        <span className="font-mono" style={{ fontSize: '0.58rem', color: 'var(--text-muted)' }}>Size</span>
+        <span className="font-mono" style={{ fontSize: '0.58rem', color: 'var(--text-muted)' }}>{t('matrix.size')}</span>
         <select
           value={matrixSize}
           onChange={(e) => {
@@ -30,12 +32,12 @@ export default function MatrixEditor({
           {[2, 3, 4, 5, 6].map((s) => <option key={s} value={s}>{`${s}x${s}`}</option>)}
         </select>
         <button className="btn btn-cyan" onClick={fetchNash} disabled={loading.nash}>
-          Recompute
+          {t('matrix.recompute')}
         </button>
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
         <div>
-          <div className="font-mono" style={{ fontSize: '0.56rem', color: 'var(--accent-red)', marginBottom: '0.25rem' }}>Attacker A</div>
+          <div className="font-mono" style={{ fontSize: '0.56rem', color: 'var(--accent-red)', marginBottom: '0.25rem' }}>{t('matrix.attackerA')}</div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ borderCollapse: 'collapse' }}>
               <tbody>
@@ -58,7 +60,7 @@ export default function MatrixEditor({
           </div>
         </div>
         <div>
-          <div className="font-mono" style={{ fontSize: '0.56rem', color: 'var(--accent-cyan)', marginBottom: '0.25rem' }}>Defender B</div>
+          <div className="font-mono" style={{ fontSize: '0.56rem', color: 'var(--accent-cyan)', marginBottom: '0.25rem' }}>{t('matrix.defenderB')}</div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ borderCollapse: 'collapse' }}>
               <tbody>
