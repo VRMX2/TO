@@ -117,9 +117,9 @@ export default function Analysis() {
   }[color] || 'var(--text-secondary)');
 
   return (
-    <div className="dashboard-layout">
+    <div className="dashboard-layout page-transition">
       <Header />
-      <div className="main-content" style={{ gridColumn: '1 / -1', padding: '1.5rem', overflowY: 'auto' }}>
+      <div className="main-content page-transition delay-1" style={{ gridColumn: '1 / -1', padding: '1.5rem', overflowY: 'auto' }}>
 
         {/* Page Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
@@ -141,7 +141,7 @@ export default function Analysis() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
 
           {/* LEFT COLUMN */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div className="page-transition delay-2" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             {/* Payoff Matrix */}
             <Panel color="cyan" title={t('analysis.payoffMatrix')} subtitle={t('analysis.payoffSubtitle')}>
@@ -246,7 +246,7 @@ export default function Analysis() {
           </div>
 
           {/* RIGHT COLUMN */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <div className="page-transition delay-3" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             {/* Pure Nash Table */}
             <Panel color="amber" title={t('analysis.pureTitle')} badge={pureNash.length === 0 ? t('analysis.noneFound') : `${pureNash.length} ${t('analysis.found')}`}>

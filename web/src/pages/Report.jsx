@@ -195,9 +195,9 @@ export default function Report() {
   const sectionIcons = [FileText, Target, AlertTriangle, Shield, CheckCircle];
 
   return (
-    <div className="dashboard-layout">
+    <div className="dashboard-layout page-transition">
       <Header />
-      <div style={{ gridColumn: '1/-1', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      <div className="page-transition delay-1" style={{ gridColumn: '1/-1', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
         {/* Page Title */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -221,7 +221,7 @@ export default function Report() {
         </div>
 
         {/* Top Row: Config + Nash Summary */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
+        <div className="page-transition delay-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
 
           {/* Config Panel */}
           <Panel color="cyan" title={t('report.config')} icon={<Cpu size={12} />}>
@@ -412,7 +412,7 @@ export default function Report() {
         {/* AI Report Sections */}
         {generated && sections.length > 0 && (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="page-transition delay-3" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <CheckCircle size={14} style={{ color: 'var(--accent-green)' }} />
                 <span className="font-mono" style={{ fontSize: '0.68rem', color: 'var(--accent-green)', letterSpacing: '0.08em' }}>

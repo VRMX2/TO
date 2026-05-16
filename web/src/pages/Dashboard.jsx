@@ -333,11 +333,11 @@ export default function Dashboard() {
   const gameValue = nashData?.attacker_utility ?? 0;
 
   return (
-    <div className="dashboard-layout">
+    <div className="dashboard-layout page-transition">
       <Header />
 
       {/* Controls Bar */}
-      <div className="controls-row">
+      <div className="controls-row page-transition delay-1">
         <div className="controls-left">
           <ConfigSelect label={t('dashboard.scenario')} value={scenario} onChange={setScenario}
             options={[['standard','Standard 4×4'],['zero-sum','Zero-Sum'],['advanced','Advanced APT']]} />
@@ -388,7 +388,7 @@ export default function Dashboard() {
       </div>
 
       {/* Left Sidebar */}
-      <div className="left-sidebar">
+      <div className="left-sidebar page-transition delay-2">
         {/* Strategy Probabilities */}
         <div className="panel">
           <div className="panel-header">
@@ -456,7 +456,7 @@ export default function Dashboard() {
       </div>
 
       {/* Center Content */}
-      <div className="main-content">
+      <div className="main-content page-transition delay-3">
         {/* Convergence Chart */}
         <div className="panel" style={{ flex: 1.5 }}>
           <div className="panel-header">
@@ -467,10 +467,10 @@ export default function Dashboard() {
             {convergenceData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={convergenceData} margin={{ top:5, right:20, left:-25, bottom:5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
                   <XAxis dataKey="iteration" stroke="var(--text-muted)" tick={{ fontSize:9, fill:'var(--text-muted)' }} />
                   <YAxis stroke="var(--text-muted)" tick={{ fontSize:9, fill:'var(--text-muted)' }} />
-                  <Tooltip contentStyle={{ background:'#0a0e17', border:'1px solid rgba(0,240,255,0.2)', borderRadius:4, fontFamily:'var(--font-mono)', fontSize:11 }} />
+                  <Tooltip contentStyle={{ background:'rgba(10,18,35,0.9)', backdropFilter:'blur(10px)', border:'1px solid rgba(0,240,255,0.15)', borderRadius:8, fontFamily:'var(--font-mono)', fontSize:11, boxShadow:'0 10px 20px rgba(0,0,0,0.5)' }} />
                   <ReferenceLine y={gameValue} stroke="var(--accent-amber)" strokeDasharray="4 3" strokeWidth={1.5}
                     label={{ value:`v*=${gameValue.toFixed(2)}`, position:'right', fill:'var(--accent-amber)', fontSize:9 }} />
                   <Line type="monotone" dataKey="attacker" stroke="var(--accent-red)" strokeWidth={2} dot={false} name="Attacker" />
@@ -545,7 +545,7 @@ export default function Dashboard() {
       </div>
 
       {/* Right Sidebar */}
-      <div className="right-sidebar">
+      <div className="right-sidebar page-transition delay-4">
         {/* AI Event Log */}
         <div className="panel" style={{ flex:1 }}>
           <div className="panel-header">

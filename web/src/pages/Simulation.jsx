@@ -342,12 +342,12 @@ export default function Simulation() {
   const progress = (round / maxRounds) * 100;
 
   return (
-    <div className="dashboard-layout">
+    <div className="dashboard-layout page-transition">
       <Header />
-      <div className="main-content" style={{ gridColumn: '1 / -1', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto' }}>
+      <div className="main-content page-transition delay-1" style={{ gridColumn: '1 / -1', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto' }}>
 
         {/* ── CONTROL BAR ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', background: 'var(--bg-panel)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '0.75rem 1rem' }}>
+        <div className="page-transition delay-2" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', background: 'var(--bg-panel)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '0.75rem 1rem' }}>
           <Zap size={16} className="text-red" />
           <span className="font-mono text-primary" style={{ fontSize: '0.8rem', letterSpacing: '0.08em' }}>{t('simulation.title')}</span>
           <div style={{ flex: 1 }} />
@@ -402,7 +402,7 @@ export default function Simulation() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
 
           {/* LEFT: Network + Manual selector */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="page-transition delay-3" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <Panel color="cyan" title={t('simulation.network')} badge={running ? t('simulation.live') : t('simulation.idle')} badgeColor={running ? '#00ff66' : 'var(--text-muted)'}>
               <div style={{ height: 300 }}>
                 <NetworkSVG attackingNode={currentAtt} defendingNode={currentDef} packets={packets} nodeStates={nodeStates} nodeLabelOverrides={nodeLabelOverrides} />
@@ -462,7 +462,7 @@ export default function Simulation() {
           </div>
 
           {/* CENTER: Chart + Strategy probs */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="page-transition delay-4" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <Panel color="cyan" title={t('simulation.payoffConvergence')} subtitle={t('simulation.payoffConvergenceSubtitle')}>
               <div style={{ height: 220 }}>
                 <ResponsiveContainer width="100%" height="100%">
@@ -538,7 +538,7 @@ export default function Simulation() {
           </div>
 
           {/* RIGHT: AI Analysis + Logs */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div className="page-transition delay-4" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
             {/* AI Monitor */}
             <Panel color="cyan" title={t('simulation.aiMonitor')} badge={t('simulation.live')} badgeColor="#00ff66">
