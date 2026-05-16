@@ -20,6 +20,7 @@ export const translations = {
       analysis: 'Analysis',
       simulate: 'Simulate',
       report: 'Report',
+      about: 'About',
     },
     dashboard: {
       scenario: 'Scenario',
@@ -220,6 +221,7 @@ export const translations = {
       analysis: 'Analyse',
       simulate: 'Simulation',
       report: 'Rapport',
+      about: 'A Propos',
     },
     dashboard: {
       scenario: 'Scenario',
@@ -420,6 +422,7 @@ export const translations = {
       analysis: 'التحليل',
       simulate: 'المحاكاة',
       report: 'التقرير',
+      about: 'حول',
     },
     dashboard: {
       scenario: 'السيناريو',

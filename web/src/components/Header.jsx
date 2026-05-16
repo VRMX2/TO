@@ -13,7 +13,8 @@ export default function Header() {
     { name: t('nav.dashboard'), path: '/' },
     { name: t('nav.analysis'), path: '/analysis' },
     { name: t('nav.simulate'), path: '/simulate' },
-    { name: t('nav.report'), path: '/report' }
+    { name: t('nav.report'), path: '/report' },
+    { name: t('nav.about'), path: '/about' }
   ];
 
   return (
