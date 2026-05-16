@@ -680,12 +680,18 @@ export default function Dashboard() {
       </div>
 
       {confirmDeleteOpen && (
-        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.55)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000 }}>
-          <div style={{ width:340, background:'var(--bg-panel)', border:'1px solid rgba(255,59,48,0.35)', borderRadius:8, padding:'0.9rem' }}>
-            <div className="font-mono" style={{ color:'var(--accent-red)', fontSize:'0.7rem', marginBottom:'0.5rem', letterSpacing:'0.07em' }}>
-              {t('dashboard.confirmDelete')}
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000 }}>
+          <div style={{
+            width:380, padding:'1.5rem',
+            background:'linear-gradient(145deg, rgba(20,30,55,0.95), rgba(2,6,23,0.98))',
+            border:'1px solid rgba(255,59,48,0.3)', borderTop:'2px solid rgba(255,59,48,0.6)',
+            borderRadius:16, boxShadow:'0 30px 80px rgba(0,0,0,0.7), 0 0 40px rgba(255,59,48,0.1)'
+          }}>
+            <div style={{ display:'flex', alignItems:'center', gap:'0.6rem', marginBottom:'0.75rem' }}>
+              <div style={{ width:8, height:8, borderRadius:'50%', background:'var(--accent-red)', boxShadow:'0 0 8px var(--accent-red)' }} />
+              <span className="font-mono" style={{ color:'var(--accent-red)', fontSize:'0.72rem', letterSpacing:'0.1em', textTransform:'uppercase' }}>{t('dashboard.confirmDelete')}</span>
             </div>
-            <div style={{ color:'var(--text-secondary)', fontSize:'0.68rem', marginBottom:'0.9rem', lineHeight:1.5 }}>
+            <div style={{ color:'var(--text-secondary)', fontSize:'0.68rem', marginBottom:'1.25rem', lineHeight:1.7, paddingLeft:'1.2rem', borderLeft:'2px solid rgba(255,59,48,0.2)' }}>
               {t('dashboard.deletePresetQuestion', { name: selectedPreset })}
             </div>
             <div style={{ display:'flex', justifyContent:'flex-end', gap:'0.5rem' }}>
@@ -704,13 +710,13 @@ export default function Dashboard() {
 /* ─── Reusable sub-components ─── */
 function StratBar({ label, name, prob, color }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:'0.4rem', marginBottom:'0.35rem' }}>
-      <span className="font-mono" style={{ fontSize:'0.55rem', color:'var(--text-muted)', width:18, flexShrink:0 }}>{label}</span>
-      <span style={{ fontSize:'0.6rem', color:'var(--text-secondary)', flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{name}</span>
-      <div style={{ width:55, height:4, background:'rgba(255,255,255,0.1)', borderRadius:2, flexShrink:0 }}>
-        <div style={{ width:`${prob}%`, height:'100%', background:color, borderRadius:2, transition:'width 0.5s ease' }} />
+    <div style={{ display:'flex', alignItems:'center', gap:'0.5rem', marginBottom:'0.45rem' }}>
+      <span className="font-mono" style={{ fontSize:'0.55rem', color:'var(--text-muted)', width:20, flexShrink:0 }}>{label}</span>
+      <span style={{ fontSize:'0.58rem', color:'var(--text-secondary)', flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{name}</span>
+      <div style={{ width:60, height:5, background:'rgba(255,255,255,0.05)', borderRadius:4, flexShrink:0, overflow:'hidden' }}>
+        <div style={{ width:`${prob}%`, height:'100%', background:`linear-gradient(90deg, ${color}80, ${color})`, borderRadius:4, transition:'width 0.6s cubic-bezier(0.16,1,0.3,1)', boxShadow:`0 0 6px ${color}` }} />
       </div>
-      <span className="font-mono" style={{ fontSize:'0.55rem', color, width:30, textAlign:'right', flexShrink:0 }}>{prob}%</span>
+      <span className="font-mono" style={{ fontSize:'0.55rem', color, width:32, textAlign:'right', flexShrink:0 }}>{prob}%</span>
     </div>
   );
 }
@@ -718,12 +724,12 @@ function StratBar({ label, name, prob, color }) {
 function Meter({ label, value, color }) {
   return (
     <div>
-      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-        <span className="font-mono" style={{ fontSize:'0.58rem', color:'var(--text-muted)' }}>{label}</span>
-        <span className="font-mono" style={{ fontSize:'0.58rem', color }}>{Math.round(value)}%</span>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+        <span className="font-mono" style={{ fontSize:'0.58rem', color:'var(--text-muted)', letterSpacing:'0.08em', textTransform:'uppercase' }}>{label}</span>
+        <span className="font-mono" style={{ fontSize:'0.72rem', color, fontWeight:500, textShadow:`0 0 10px ${color}` }}>{Math.round(value)}%</span>
       </div>
-      <div style={{ width:'100%', height:6, background:'rgba(255,255,255,0.08)', borderRadius:3 }}>
-        <div style={{ width:`${Math.min(100, Math.round(value))}%`, height:'100%', background:color, borderRadius:3, transition:'width 0.5s ease', boxShadow:`0 0 8px ${color}55` }} />
+      <div style={{ width:'100%', height:7, background:'rgba(255,255,255,0.05)', borderRadius:4, overflow:'hidden' }}>
+        <div style={{ width:`${Math.min(100, Math.round(value))}%`, height:'100%', background:`linear-gradient(90deg, ${color}60, ${color})`, borderRadius:4, transition:'width 0.6s cubic-bezier(0.16,1,0.3,1)', boxShadow:`0 0 12px ${color}88` }} />
       </div>
     </div>
   );
@@ -731,24 +737,24 @@ function Meter({ label, value, color }) {
 
 function StatRow({ label, value, color }) {
   return (
-    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingBottom:'0.25rem', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
-      <span className="font-mono" style={{ fontSize:'0.56rem', color:'var(--text-muted)' }}>{label}</span>
-      <span className="font-mono" style={{ fontSize:'0.62rem', color }}>{value}</span>
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'0.3rem 0', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+      <span className="font-mono" style={{ fontSize:'0.55rem', color:'var(--text-muted)', letterSpacing:'0.07em', textTransform:'uppercase' }}>{label}</span>
+      <span className="font-mono" style={{ fontSize:'0.65rem', color, textShadow: color !== 'var(--text-secondary)' ? `0 0 8px ${color}` : 'none' }}>{value}</span>
     </div>
   );
 }
 
 function ConfigSelect({ label, value, onChange, options }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:'0.4rem' }}>
-      <span className="font-mono" style={{ fontSize:'0.58rem', color:'var(--text-secondary)', whiteSpace:'nowrap' }}>{label}</span>
+    <div style={{ display:'flex', alignItems:'center', gap:'0.5rem' }}>
+      <span className="font-mono" style={{ fontSize:'0.58rem', color:'var(--text-muted)', whiteSpace:'nowrap', letterSpacing:'0.06em', textTransform:'uppercase' }}>{label}</span>
       <select value={value} onChange={e => onChange(e.target.value)}
-        style={{ background:'var(--bg-base)', border:'1px solid rgba(0,240,255,0.2)', color:'var(--text-primary)', padding:'4px 8px', borderRadius:4, fontFamily:'var(--font-mono)', fontSize:'0.62rem', outline:'none', cursor:'pointer' }}>
+        style={{ background:'rgba(15,23,42,0.8)', border:'1px solid rgba(255,255,255,0.1)', color:'var(--text-primary)', padding:'5px 28px 5px 10px', borderRadius:6, fontFamily:'var(--font-mono)', fontSize:'0.62rem', outline:'none', cursor:'pointer', transition:'border-color 0.3s ease' }}>
         {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
       </select>
     </div>
   );
 }
 
-const mth = (color) => ({ padding:'4px 6px', fontFamily:'var(--font-mono)', fontSize:'0.58rem', color, textAlign:'center', borderBottom:'1px solid rgba(255,255,255,0.07)' });
-const mtd = { padding:'5px 6px', borderBottom:'1px solid rgba(255,255,255,0.04)', verticalAlign:'middle' };
+const mth = (color) => ({ padding:'5px 8px', fontFamily:'var(--font-mono)', fontSize:'0.58rem', color, textAlign:'center', borderBottom:'1px solid rgba(255,255,255,0.06)', textTransform:'uppercase', letterSpacing:'0.06em' });
+const mtd = { padding:'6px 8px', borderBottom:'1px solid rgba(255,255,255,0.04)', verticalAlign:'middle' };

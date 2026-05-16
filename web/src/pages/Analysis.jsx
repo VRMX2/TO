@@ -212,24 +212,24 @@ export default function Analysis() {
                 <div>
                   <div className="text-red font-mono" style={{ fontSize: '0.62rem', marginBottom: '0.5rem' }}>{t('analysis.attackerSigma')}</div>
                   {p.map((prob, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: '0.4rem' }}>
-                      <span className="font-mono" style={{ width: 20, fontSize: '0.62rem', color: 'var(--text-muted)' }}>A{i + 1}</span>
-                      <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 3 }}>
-                        <div style={{ width: `${prob * 100}%`, height: '100%', background: 'var(--accent-red)', borderRadius: 3, transition: 'width 0.5s ease' }} />
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.5rem' }}>
+                      <span className="font-mono" style={{ width: 22, fontSize: '0.62rem', color: 'var(--text-muted)' }}>A{i + 1}</span>
+                      <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 6, overflow: 'hidden' }}>
+                        <div style={{ width: `${prob * 100}%`, height: '100%', background: 'linear-gradient(90deg, rgba(255,59,48,0.6), var(--accent-red))', borderRadius: 6, transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: `0 0 8px rgba(255,59,48,0.4)` }} />
                       </div>
-                      <span className="font-mono" style={{ width: 38, fontSize: '0.62rem', color: 'var(--text-secondary)', textAlign: 'right' }}>{pct(prob)}</span>
+                      <span className="font-mono" style={{ width: 40, fontSize: '0.62rem', color: 'var(--accent-red)', textAlign: 'right' }}>{pct(prob)}</span>
                     </div>
                   ))}
                 </div>
                 <div>
                   <div className="text-cyan font-mono" style={{ fontSize: '0.62rem', marginBottom: '0.5rem' }}>{t('analysis.defenderSigma')}</div>
                   {q.map((prob, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: '0.4rem' }}>
-                      <span className="font-mono" style={{ width: 20, fontSize: '0.62rem', color: 'var(--text-muted)' }}>D{i + 1}</span>
-                      <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 3 }}>
-                        <div style={{ width: `${prob * 100}%`, height: '100%', background: 'var(--accent-cyan)', borderRadius: 3, transition: 'width 0.5s ease' }} />
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.5rem' }}>
+                      <span className="font-mono" style={{ width: 22, fontSize: '0.62rem', color: 'var(--text-muted)' }}>D{i + 1}</span>
+                      <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 6, overflow: 'hidden' }}>
+                        <div style={{ width: `${prob * 100}%`, height: '100%', background: 'linear-gradient(90deg, rgba(0,240,255,0.5), var(--accent-cyan))', borderRadius: 6, transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: `0 0 8px rgba(0,240,255,0.4)` }} />
                       </div>
-                      <span className="font-mono" style={{ width: 38, fontSize: '0.62rem', color: 'var(--text-secondary)', textAlign: 'right' }}>{pct(prob)}</span>
+                      <span className="font-mono" style={{ width: 40, fontSize: '0.62rem', color: 'var(--accent-cyan)', textAlign: 'right' }}>{pct(prob)}</span>
                     </div>
                   ))}
                 </div>
@@ -397,13 +397,26 @@ export default function Analysis() {
 function Panel({ color, title, subtitle, badge, children }) {
   const accent = { cyan: 'var(--accent-cyan)', amber: 'var(--accent-amber)', green: 'var(--accent-green)' }[color] || 'var(--border-subtle)';
   return (
-    <div style={{ background: 'var(--bg-panel)', border: `1px solid ${accent}28`, borderRadius: 8, padding: '1rem', backdropFilter: 'blur(12px)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', paddingBottom: '0.5rem', borderBottom: `1px solid ${accent}18` }}>
+    <div style={{
+      background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.7), rgba(2, 6, 23, 0.9))',
+      border: `1px solid ${accent}30`,
+      borderTop: `2px solid ${accent}60`,
+      borderRadius: 12,
+      padding: '1.25rem',
+      backdropFilter: 'blur(12px)',
+      WebkitBackdropFilter: 'blur(12px)',
+      boxShadow: `0 10px 40px rgba(0,0,0,0.4), 0 0 0 0 ${accent}, inset 0 1px 1px rgba(255,255,255,0.05)`,
+      position: 'relative',
+      overflow: 'hidden',
+      transition: 'border-color 0.3s ease, box-shadow 0.3s ease',
+    }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(255,255,255,0.03), transparent)', pointerEvents: 'none', borderRadius: 12 }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '0.75rem', borderBottom: `1px solid rgba(255,255,255,0.05)` }}>
         <div>
-          <span className="font-mono" style={{ fontSize: '0.7rem', color: accent, letterSpacing: '0.08em' }}>{title}</span>
-          {subtitle && <p className="text-muted" style={{ fontSize: '0.58rem', margin: 0, marginTop: 2 }}>{subtitle}</p>}
+          <span className="font-mono" style={{ fontSize: '0.72rem', color: accent, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>{title}</span>
+          {subtitle && <p className="text-muted" style={{ fontSize: '0.58rem', margin: 0, marginTop: 3 }}>{subtitle}</p>}
         </div>
-        {badge && <span style={{ background: `${accent}18`, border: `1px solid ${accent}45`, color: accent, padding: '2px 7px', borderRadius: 4, fontSize: '0.58rem', fontFamily: 'var(--font-mono)' }}>{badge}</span>}
+        {badge && <span style={{ background: `${accent}18`, border: `1px solid ${accent}40`, color: accent, padding: '2px 8px', borderRadius: 12, fontSize: '0.58rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' }}>{badge}</span>}
       </div>
       {children}
     </div>
@@ -412,23 +425,29 @@ function Panel({ color, title, subtitle, badge, children }) {
 
 function Collapse({ open, onToggle, children }) {
   return (
-    <div style={{ marginBottom: '0.75rem', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 5, overflow: 'hidden' }}>
-      <button onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', background: 'rgba(255,255,255,0.03)', border: 'none', cursor: 'pointer', padding: '5px 8px', color: 'var(--text-muted)', fontSize: '0.62rem', fontFamily: 'var(--font-mono)' }}>
+    <div style={{ marginBottom: '0.75rem', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 8, overflow: 'hidden' }}>
+      <button onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', background: 'rgba(255,255,255,0.03)', border: 'none', cursor: 'pointer', padding: '7px 10px', color: 'var(--text-muted)', fontSize: '0.62rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', transition: 'background 0.2s ease' }}>
         <Info size={10} /> THEORY & DEFINITION {open ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
       </button>
-      {open && <div style={{ padding: '0.6rem 0.75rem', fontSize: '0.62rem', color: 'var(--text-secondary)', lineHeight: 1.75, fontFamily: 'var(--font-mono)' }}>{children}</div>}
+      {open && <div style={{ padding: '0.75rem 1rem', fontSize: '0.62rem', color: 'var(--text-secondary)', lineHeight: 1.8, fontFamily: 'var(--font-mono)', borderTop: '1px solid rgba(255,255,255,0.04)' }}>{children}</div>}
     </div>
   );
 }
 
 function Pill({ color, children }) {
-  const m = { amber: ['rgba(255,214,10,0.15)', 'var(--accent-amber)'], cyan: ['rgba(0,240,255,0.15)', 'var(--accent-cyan)'], red: ['rgba(255,59,48,0.15)', 'var(--accent-red)'], green: ['rgba(0,255,102,0.15)', 'var(--accent-green)'], muted: ['rgba(255,255,255,0.06)', 'var(--text-muted)'] };
-  const [bg, fg] = m[color] || m.muted;
-  return <span style={{ background: bg, color: fg, padding: '1px 5px', borderRadius: 3, fontSize: '0.55rem', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>{children}</span>;
+  const m = {
+    amber: ['rgba(255,214,10,0.12)', 'rgba(255,214,10,0.4)', 'var(--accent-amber)'],
+    cyan: ['rgba(0,240,255,0.12)', 'rgba(0,240,255,0.4)', 'var(--accent-cyan)'],
+    red: ['rgba(255,59,48,0.12)', 'rgba(255,59,48,0.4)', 'var(--accent-red)'],
+    green: ['rgba(0,255,102,0.12)', 'rgba(0,255,102,0.4)', 'var(--accent-green)'],
+    muted: ['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.15)', 'var(--text-muted)'],
+  };
+  const [bg, border, fg] = m[color] || m.muted;
+  return <span style={{ background: bg, border: `1px solid ${border}`, color: fg, padding: '2px 7px', borderRadius: 20, fontSize: '0.55rem', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap', letterSpacing: '0.04em' }}>{children}</span>;
 }
 
 const TBLST = { width: '100%', borderCollapse: 'collapse' };
-const THEAD = { padding: '5px 7px', fontFamily: 'var(--font-mono)', fontSize: '0.58rem', color: 'var(--text-muted)', borderBottom: '1px solid rgba(255,255,255,0.07)', textAlign: 'left', letterSpacing: '0.04em' };
-const TD = { padding: '5px 7px', borderBottom: '1px solid rgba(255,255,255,0.04)', verticalAlign: 'middle' };
-const TH = { fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '4px 5px', letterSpacing: '0.05em', textAlign: 'center', fontSize: '0.68rem' };
-const btnSt = (bg, color) => ({ background: bg, border: `1px solid ${color}55`, color, padding: '5px 11px', borderRadius: 4, cursor: 'pointer', fontSize: '0.62rem', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 5, letterSpacing: '0.05em' });
+const THEAD = { padding: '6px 8px', fontFamily: 'var(--font-mono)', fontSize: '0.58rem', color: 'var(--text-muted)', borderBottom: '1px solid rgba(255,255,255,0.06)', textAlign: 'left', letterSpacing: '0.06em', textTransform: 'uppercase' };
+const TD = { padding: '7px 8px', borderBottom: '1px solid rgba(255,255,255,0.04)', verticalAlign: 'middle' };
+const TH = { fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '5px 6px', letterSpacing: '0.05em', textAlign: 'center', fontSize: '0.68rem' };
+const btnSt = (bg, color) => ({ background: bg, border: `1px solid ${color}55`, color, padding: '6px 14px', borderRadius: 8, cursor: 'pointer', fontSize: '0.62rem', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '0.06em', textTransform: 'uppercase', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)' });

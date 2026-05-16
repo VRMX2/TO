@@ -71,21 +71,26 @@ export default function Header() {
           </select>
         </div>
 
-        <nav style={{ display: 'flex', gap: '1rem', marginLeft: '1rem' }}>
+        <nav style={{ display: 'flex', gap: '0.5rem', marginLeft: '1rem' }}>
           {tabs.map((tab) => {
             const isActive = location.pathname === tab.path;
             return (
               <Link key={tab.name} to={tab.path} style={{
-                background: isActive ? 'rgba(0, 240, 255, 0.1)' : 'transparent',
-                border: 'none',
-                color: isActive ? 'var(--accent-cyan)' : 'var(--text-secondary)',
-                padding: '0.5rem 1rem',
-                borderRadius: '4px',
-                fontFamily: 'var(--font-sans)',
-                fontSize: '0.875rem',
+                background: isActive ? 'linear-gradient(to bottom, rgba(0,240,255,0.15), rgba(0,240,255,0.02))' : 'transparent',
+                border: '1px solid',
+                borderColor: isActive ? 'rgba(0,240,255,0.3)' : 'transparent',
+                color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
+                padding: '0.4rem 1.25rem',
+                borderRadius: '8px',
+                fontFamily: 'var(--font-mono)',
+                fontSize: '0.7rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.1em',
                 cursor: 'pointer',
-                borderBottom: isActive ? '2px solid var(--accent-cyan)' : '2px solid transparent',
-                textDecoration: 'none'
+                textDecoration: 'none',
+                textShadow: isActive ? '0 0 10px rgba(0,240,255,0.5)' : 'none',
+                boxShadow: isActive ? '0 4px 15px rgba(0,240,255,0.1), inset 0 1px 1px rgba(255,255,255,0.1)' : 'none',
+                transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
               }}>
                 {tab.name}
               </Link>

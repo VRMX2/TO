@@ -590,13 +590,14 @@ export default function Simulation() {
 
             {/* Event Log */}
             <Panel color="green" title={t('simulation.simLog')} style={{ flex: 1 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', maxHeight: 280, overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', maxHeight: 280, overflowY: 'auto' }}>
                 {logs.map(log => {
                   const clrMap = { cyan: 'var(--accent-cyan)', green: 'var(--accent-green)', amber: 'var(--accent-amber)', red: 'var(--accent-red)', secondary: 'var(--text-secondary)' };
+                  const c = clrMap[log.color] || 'var(--text-secondary)';
                   return (
-                    <div key={log.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start' }}>
-                      <span className="font-mono text-muted" style={{ fontSize: '0.55rem', whiteSpace: 'nowrap', marginTop: 1 }}>{log.time}</span>
-                      <span style={{ fontSize: '0.62rem', fontFamily: 'var(--font-mono)', color: clrMap[log.color] || 'var(--text-secondary)', lineHeight: 1.4 }}>{log.text}</span>
+                    <div key={log.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-start', padding: '0.28rem 0.5rem', borderRadius: 5, background: `${c}06`, borderLeft: `2px solid ${c}40` }}>
+                      <span className="font-mono text-muted" style={{ fontSize: '0.5rem', whiteSpace: 'nowrap', marginTop: 2, flexShrink: 0 }}>{log.time}</span>
+                      <span style={{ fontSize: '0.6rem', fontFamily: 'var(--font-mono)', color: c, lineHeight: 1.5 }}>{log.text}</span>
                     </div>
                   );
                 })}
@@ -646,13 +647,22 @@ export default function Simulation() {
 function Panel({ color, title, subtitle, badge, badgeColor, children }) {
   const accent = { cyan: 'var(--accent-cyan)', amber: 'var(--accent-amber)', green: 'var(--accent-green)', red: 'var(--accent-red)' }[color] || 'var(--border-subtle)';
   return (
-    <div style={{ background: 'var(--bg-panel)', border: `1px solid ${accent}28`, borderRadius: 8, padding: '0.875rem', backdropFilter: 'blur(12px)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem', paddingBottom: '0.5rem', borderBottom: `1px solid ${accent}18` }}>
+    <div style={{
+      background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.7), rgba(2, 6, 23, 0.9))',
+      border: `1px solid ${accent}28`,
+      borderTop: `2px solid ${accent}55`,
+      borderRadius: 12, padding: '1rem',
+      backdropFilter: 'blur(12px)',
+      boxShadow: `0 10px 40px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.04)`,
+      position: 'relative', overflow: 'hidden',
+    }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(255,255,255,0.03), transparent)', pointerEvents: 'none' }} />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', paddingBottom: '0.6rem', borderBottom: `1px solid rgba(255,255,255,0.05)` }}>
         <div>
-          <span className="font-mono" style={{ fontSize: '0.68rem', color: accent, letterSpacing: '0.08em' }}>{title}</span>
-          {subtitle && <p className="text-muted" style={{ fontSize: '0.56rem', margin: 0, marginTop: 1 }}>{subtitle}</p>}
+          <span className="font-mono" style={{ fontSize: '0.7rem', color: accent, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>{title}</span>
+          {subtitle && <p className="text-muted" style={{ fontSize: '0.56rem', margin: 0, marginTop: 2 }}>{subtitle}</p>}
         </div>
-        {badge && <span style={{ background: `${badgeColor || accent}18`, border: `1px solid ${badgeColor || accent}45`, color: badgeColor || accent, padding: '2px 6px', borderRadius: 4, fontSize: '0.56rem', fontFamily: 'var(--font-mono)' }}>{badge}</span>}
+        {badge && <span style={{ background: `${badgeColor || accent}15`, border: `1px solid ${badgeColor || accent}40`, color: badgeColor || accent, padding: '2px 8px', borderRadius: 12, fontSize: '0.55rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>{badge}</span>}
       </div>
       {children}
     </div>
@@ -662,16 +672,16 @@ function Panel({ color, title, subtitle, badge, badgeColor, children }) {
 function Meter({ label, value, color }) {
   return (
     <div style={{ marginBottom: '0.6rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-        <span className="font-mono text-muted" style={{ fontSize: '0.58rem' }}>{label}</span>
-        <span className="font-mono" style={{ fontSize: '0.58rem', color }}>{Math.round(value)}%</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+        <span className="font-mono text-muted" style={{ fontSize: '0.58rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{label}</span>
+        <span className="font-mono" style={{ fontSize: '0.7rem', color, fontWeight: 500, textShadow: `0 0 8px ${color}` }}>{Math.round(value)}%</span>
       </div>
-      <div style={{ width: '100%', height: 5, background: 'rgba(255,255,255,0.1)', borderRadius: 3 }}>
-        <div style={{ width: `${Math.round(value)}%`, height: '100%', background: color, borderRadius: 3, transition: 'width 0.5s ease' }} />
+      <div style={{ width: '100%', height: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden' }}>
+        <div style={{ width: `${Math.round(value)}%`, height: '100%', background: `linear-gradient(90deg, ${color}60, ${color})`, borderRadius: 4, boxShadow: `0 0 8px ${color}`, transition: 'width 0.6s cubic-bezier(0.16,1,0.3,1)' }} />
       </div>
     </div>
   );
 }
 
-const pillBtn = { padding: '4px 9px', borderRadius: 4, cursor: 'pointer', fontSize: '0.58rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.05em' };
-const ctrlBtn = (color, bg) => ({ background: bg, border: `1px solid ${color}66`, color, padding: '5px 12px', borderRadius: 5, cursor: 'pointer', fontSize: '0.65rem', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 5, letterSpacing: '0.05em', whiteSpace: 'nowrap' });
+const pillBtn = { padding: '5px 10px', borderRadius: 6, cursor: 'pointer', fontSize: '0.58rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' };
+const ctrlBtn = (color, bg) => ({ background: bg, border: `1px solid ${color}55`, color, padding: '6px 14px', borderRadius: 8, cursor: 'pointer', fontSize: '0.63rem', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '0.08em', whiteSpace: 'nowrap', textTransform: 'uppercase', transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)', boxShadow: `0 4px 15px ${color}15` });

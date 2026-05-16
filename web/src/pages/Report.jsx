@@ -543,10 +543,20 @@ export default function Report() {
 function Panel({ color, title, icon, children, style = {} }) {
   const accent = { cyan: 'var(--accent-cyan)', amber: 'var(--accent-amber)', green: 'var(--accent-green)', red: 'var(--accent-red)' }[color] || 'var(--border-subtle)';
   return (
-    <div style={{ background: 'var(--bg-panel)', border: `1px solid ${accent}28`, borderRadius: 8, padding: '0.875rem', backdropFilter: 'blur(12px)', ...style }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.65rem', paddingBottom: '0.5rem', borderBottom: `1px solid ${accent}18` }}>
+    <div style={{
+      background: 'linear-gradient(145deg, rgba(15, 23, 42, 0.7), rgba(2, 6, 23, 0.9))',
+      border: `1px solid ${accent}28`,
+      borderTop: `2px solid ${accent}55`,
+      borderRadius: 14, padding: '1.1rem',
+      backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+      boxShadow: `0 10px 40px rgba(0,0,0,0.4), inset 0 1px 1px rgba(255,255,255,0.04)`,
+      position: 'relative', overflow: 'hidden',
+      ...style
+    }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(255,255,255,0.03), transparent)', pointerEvents: 'none' }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', paddingBottom: '0.6rem', borderBottom: `1px solid rgba(255,255,255,0.05)` }}>
         {icon && <span style={{ color: accent }}>{icon}</span>}
-        <span className="font-mono" style={{ fontSize: '0.65rem', color: accent, letterSpacing: '0.08em' }}>{title}</span>
+        <span className="font-mono" style={{ fontSize: '0.68rem', color: accent, letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 500 }}>{title}</span>
       </div>
       {children}
     </div>
@@ -555,12 +565,12 @@ function Panel({ color, title, icon, children, style = {} }) {
 
 function MiniBar({ label, value, color }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: 3 }}>
-      <span className="font-mono" style={{ fontSize: '0.55rem', color: 'var(--text-muted)', width: 18, flexShrink: 0 }}>{label}</span>
-      <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.08)', borderRadius: 2 }}>
-        <div style={{ width: `${value * 100}%`, height: '100%', background: color, borderRadius: 2 }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: 5 }}>
+      <span className="font-mono" style={{ fontSize: '0.55rem', color: 'var(--text-muted)', width: 20, flexShrink: 0 }}>{label}</span>
+      <div style={{ flex: 1, height: 5, background: 'rgba(255,255,255,0.05)', borderRadius: 4, overflow: 'hidden' }}>
+        <div style={{ width: `${value * 100}%`, height: '100%', background: `linear-gradient(90deg, ${color}60, ${color})`, borderRadius: 4, boxShadow: `0 0 8px ${color}`, transition: 'width 0.6s cubic-bezier(0.16,1,0.3,1)' }} />
       </div>
-      <span className="font-mono" style={{ fontSize: '0.55rem', color, width: 36, textAlign: 'right', flexShrink: 0 }}>
+      <span className="font-mono" style={{ fontSize: '0.55rem', color, width: 38, textAlign: 'right', flexShrink: 0 }}>
         {(value * 100).toFixed(1)}%
       </span>
     </div>
@@ -578,9 +588,9 @@ function ConfigRow({ label, children }) {
 
 function StatRow({ label, value, color }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '0.3rem' }}>
-      <span className="font-mono text-muted" style={{ fontSize: '0.56rem' }}>{label}</span>
-      <span className="font-mono" style={{ fontSize: '0.65rem', color }}>{value}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.32rem 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+      <span className="font-mono text-muted" style={{ fontSize: '0.55rem', letterSpacing: '0.07em', textTransform: 'uppercase' }}>{label}</span>
+      <span className="font-mono" style={{ fontSize: '0.65rem', color, textShadow: `0 0 8px ${color}` }}>{value}</span>
     </div>
   );
 }
@@ -593,18 +603,21 @@ const selectSt = { width: '100%', minWidth: 0 };
 
 const actionBtn = (color, bg) => ({
   background: bg,
-  border: `1px solid ${color}66`,
+  border: `1px solid ${color}55`,
   color,
-  padding: '6px 14px',
-  borderRadius: 5,
+  padding: '7px 16px',
+  borderRadius: 8,
   cursor: 'pointer',
-  fontSize: '0.65rem',
+  fontSize: '0.63rem',
   fontFamily: 'var(--font-mono)',
   display: 'flex',
   alignItems: 'center',
-  gap: 6,
-  letterSpacing: '0.05em',
+  gap: 7,
+  letterSpacing: '0.08em',
   whiteSpace: 'nowrap',
+  textTransform: 'uppercase',
+  transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+  boxShadow: `0 4px 15px ${color}15`,
 });
 
 const TH = (color) => ({
