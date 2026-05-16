@@ -9,14 +9,29 @@ import './styles/dashboard.css';
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/analysis" element={<Analysis />} />
-        <Route path="/simulate" element={<Simulation />} />
-        <Route path="/report" element={<Report />} />
-      </Routes>
-    </Router>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <div style={{ flex: 1 }}>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/analysis" element={<Analysis />} />
+            <Route path="/simulate" element={<Simulation />} />
+            <Route path="/report" element={<Report />} />
+          </Routes>
+        </Router>
+      </div>
+      <footer style={{
+        textAlign: 'center',
+        padding: '1rem',
+        background: 'var(--bg-panel)',
+        borderTop: '1px solid var(--border-subtle)',
+        fontFamily: 'var(--font-mono)',
+        fontSize: '0.75rem',
+        color: 'var(--text-secondary)'
+      }}>
+        Made by: GRISSI LAHCEN, BERRAG RAYANE ABDESSALEM, HABBA EL RAYANE, AKSOUH ABDERRAOUF, BERSALI HAMZA, CHABRI ABDELMALEK
+      </footer>
+    </div>
   );
 }
 
