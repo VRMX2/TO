@@ -3,6 +3,7 @@ import Header from '../components/Header';
 import { Zap, Play, Square, RefreshCw, ChevronRight, Brain } from 'lucide-react';
 import { useGameAPI } from '../hooks/useGameAPI';
 import { useI18n } from '../i18n/I18nProvider';
+import { apiHeaders } from '../lib/apiClient';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer
 } from 'recharts';
@@ -116,7 +117,7 @@ async function askClaude(simState) {
   const { round, attStrat, defStrat, payoff, threat, coverage, history, mixedNash } = simState;
   const response = await fetch('/api/ai/round-advice', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: apiHeaders(),
     body: JSON.stringify({
       round,
       attacker: attStrat.name,

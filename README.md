@@ -5,6 +5,16 @@
 
 CyberGameGT is an educational platform for demonstrating Game Theory and AI-driven Cyber Security defense strategies.
 
+## 🔒 Security (v2.1)
+
+- **API key auth**: set `API_KEY` in `backend/.env` and the same value in `web/.env.local` as `VITE_API_KEY`. When set, all routes except `/health` and `/ready` require the `X-API-Key` header.
+- **Rate limiting**: global API limit + stricter AI endpoint limits (Groq abuse protection).
+- **Input validation**: matrix size caps, typed network/AI payloads, safe 500 errors in production (`DEBUG=false`).
+- **Headers**: security headers on API responses and nginx (prod).
+- **Production**: backend is not published on port 8000 in `docker-compose.prod.yml` — only nginx exposes the app.
+
+Copy `backend/.env.example` → `backend/.env` and `web/.env.example` → `web/.env.local` before deploying.
+
 ## 🚀 Getting Started
 
 ### Prerequisites

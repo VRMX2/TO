@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
+import { wsUrl } from '../lib/apiClient';
 
 export const useWebSocket = () => {
   const ws = useRef(null);
@@ -10,17 +11,9 @@ export const useWebSocket = () => {
   const [reconnectInSec, setReconnectInSec] = useState(0);
 
   useEffect(() => {
-    const buildWebSocketUrl = () => {
-      const envUrl = import.meta.env.VITE_WS_URL;
-      if (envUrl) return envUrl;
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      return `${protocol}//${window.location.host}/ws/threats`;
-    };
-
     const connectWS = () => {
       try {
-        // Uses same host by default; can be overridden with VITE_WS_URL.
-        ws.current = new WebSocket(buildWebSocketUrl());
+        ws.current = new WebSocket(wsUrl('/ws/threats'));
 
         ws.current.onopen = () => {
           setConnected(true);

@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Hexagon } from 'lucide-react';
+import { Hexagon, ShieldCheck } from 'lucide-react';
+import { isApiKeyConfigured } from '../lib/apiClient';
 import { useGameStore } from '../store/gameStore';
 import { useI18n } from '../i18n/I18nProvider';
 
@@ -31,13 +32,17 @@ export default function Header() {
       </div>
 
       <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-        <div style={{ 
-          display: 'flex', alignItems: 'center', gap: '0.5rem', 
-          border: '1px solid var(--accent-green)', borderRadius: '20px', 
-          padding: '0.25rem 1rem', background: 'rgba(0, 255, 102, 0.05)'
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.5rem',
+          border: `1px solid ${isApiKeyConfigured() ? 'var(--accent-purple)' : 'var(--accent-green)'}`,
+          borderRadius: '20px',
+          padding: '0.25rem 1rem',
+          background: isApiKeyConfigured() ? 'rgba(168, 85, 247, 0.08)' : 'rgba(0, 255, 102, 0.05)',
         }}>
-          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-green)', boxShadow: '0 0 5px var(--accent-green)' }}></div>
-          <span className="text-xs font-mono text-green">{t('app.nashEngineActive')}</span>
+          <ShieldCheck size={12} style={{ color: isApiKeyConfigured() ? 'var(--accent-purple)' : 'var(--accent-green)' }} />
+          <span className="text-xs font-mono" style={{ color: isApiKeyConfigured() ? 'var(--accent-purple)' : 'var(--accent-green)' }}>
+            {isApiKeyConfigured() ? t('app.secured') : t('app.nashEngineActive')}
+          </span>
         </div>
 
         <div style={{ 

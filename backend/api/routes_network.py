@@ -6,6 +6,7 @@ from api.schemas import (
 )
 from network.topology import generate_topology
 from network.simulator import simulate_attack, deploy_defense
+from app.security import safe_error_detail
 
 router = APIRouter(prefix="/network", tags=["Network"])
 
@@ -19,7 +20,7 @@ async def get_topology(req: TopologyRequest):
         links = [LinkData(**l) for l in data["links"]]
         return TopologyResult(nodes=nodes, links=links, node_count=len(nodes))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.get("/topology/{topology_type}", response_model=TopologyResult)
@@ -31,7 +32,7 @@ async def get_topology_get(topology_type: str):
         links = [LinkData(**l) for l in data["links"]]
         return TopologyResult(nodes=nodes, links=links, node_count=len(nodes))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 from sqlalchemy.orm import Session
@@ -60,7 +61,7 @@ async def run_simulate_attack(req: SimulateAttackRequest, db: Session = Depends(
         return SimulateAttackResult(**result)
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.post("/deploy-defense", response_model=DeployDefenseResult)
@@ -84,4 +85,4 @@ async def run_deploy_defense(req: DeployDefenseRequest, db: Session = Depends(ge
         return DeployDefenseResult(**result)
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))

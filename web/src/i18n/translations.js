@@ -14,6 +14,7 @@ export const translations = {
       medium: 'MEDIUM',
       low: 'LOW',
       language: 'Language',
+      secured: 'SECURED API',
     },
     nav: {
       dashboard: 'Dashboard',
@@ -215,6 +216,7 @@ export const translations = {
       medium: 'MOYEN',
       low: 'FAIBLE',
       language: 'Langue',
+      secured: 'API SECURISEE',
     },
     nav: {
       dashboard: 'Tableau de bord',
@@ -416,6 +418,7 @@ export const translations = {
       medium: 'متوسط',
       low: 'منخفض',
       language: 'اللغة',
+      secured: 'API محمي',
     },
     nav: {
       dashboard: 'لوحة التحكم',

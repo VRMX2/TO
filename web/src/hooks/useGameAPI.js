@@ -1,8 +1,10 @@
 import axios from 'axios';
+import { apiHeaders } from '../lib/apiClient';
 
 const api = axios.create({
-  baseURL: '/api', // Proxied by Vite to localhost:8000
+  baseURL: '/api',
   timeout: 10000,
+  headers: apiHeaders(),
 });
 
 const LOCAL_PRESETS_KEY = 'gt_local_presets_v1';

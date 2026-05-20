@@ -11,6 +11,7 @@ from game_theory.pareto import find_pareto_optimal
 from game_theory.lp_solver import solve_lp
 from game_theory.convergence import generate_convergence_data
 from game_theory.payoff import build_payoff_matrix
+from app.security import safe_error_detail
 
 router = APIRouter(prefix="/game", tags=["Game Theory"])
 
@@ -73,7 +74,7 @@ async def compute_nash(req: ComputeNashRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.post("/pareto", response_model=ParetoResult)
@@ -96,7 +97,7 @@ async def get_pareto(req: ParetoRequest):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.post("/lp-solve", response_model=LPSolveResult)
@@ -107,7 +108,7 @@ async def lp_solve(req: LPSolveRequest):
         result = solve_lp(matrix)
         return LPSolveResult(**result)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.get("/scenario/{scenario_name}")
@@ -200,7 +201,7 @@ async def upsert_preset(req: ScenarioPresetRequest, db: Session = Depends(get_db
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.put("/presets/{old_name}", response_model=ScenarioPresetResponse)
@@ -242,7 +243,7 @@ async def rename_preset(old_name: str, req: ScenarioPresetRequest, db: Session =
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.delete("/presets/{name}")

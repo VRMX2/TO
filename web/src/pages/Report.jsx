@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
 import Header from '../components/Header';
 import { useI18n } from '../i18n/I18nProvider';
+import { apiHeaders } from '../lib/apiClient';
 import {
   FileText, Brain, Download, RefreshCw, CheckCircle,
   AlertTriangle, Shield, Target, Activity,
@@ -57,7 +58,7 @@ async function generateFullReport(params) {
 
   const response = await fetch('/api/ai/generate-report', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: apiHeaders(),
     body: JSON.stringify({
       nash_p: nash.p,
       nash_q: nash.q,

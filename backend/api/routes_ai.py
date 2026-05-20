@@ -1,9 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from api.schemas import (
     ThreatAnalysisRequest, ThreatAnalysisResult,
     DefenseRecommendationRequest, DefenseRecommendationResult, DefenseRecommendation,
     ReportRequest, ReportResult,
+    RoundAdviceRequest, AttackHistoryRequest,
 )
+from app.security import ai_rate_limiter, client_ip, safe_error_detail
 from ai.pattern_recognizer import classify_threat, analyze_attack_history
 from ai.defense_agent import recommend_defense, compute_defense_coverage
 from app.config import settings
@@ -73,8 +75,9 @@ def _build_briefing_fallback(
 
 
 @router.post("/generate-report", response_model=ReportResult)
-async def generate_report(req: ReportRequest):
+async def generate_report(req: ReportRequest, request: Request):
     """Generate a full AI executive security briefing using Groq."""
+    ai_rate_limiter.check(client_ip(request))
     nash_p = req.nash_p
     nash_q = req.nash_q
     game_value = req.game_value
@@ -162,14 +165,15 @@ Return this exact JSON:
 
 
 @router.post("/round-advice")
-async def round_advice(payload: Dict[str, Any]):
+async def round_advice(req: RoundAdviceRequest, request: Request):
     """Return tactical AI advice for Simulation page; fallback if provider unavailable."""
-    round_num = int(payload.get("round", 0))
-    attacker = payload.get("attacker", "Unknown attacker")
-    defender = payload.get("defender", "Unknown defender")
-    payoff = float(payload.get("payoff", 0))
-    threat = float(payload.get("threat", 0))
-    coverage = float(payload.get("coverage", 0))
+    ai_rate_limiter.check(client_ip(request))
+    round_num = req.round
+    attacker = req.attacker
+    defender = req.defender
+    payoff = req.payoff
+    threat = req.threat
+    coverage = req.coverage
 
     if not settings.groq_api_key:
         text = (
@@ -209,7 +213,7 @@ async def analyze_threat(req: ThreatAnalysisRequest):
         result = classify_threat(req.indicators)
         return ThreatAnalysisResult(**result)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.post("/recommend-defense", response_model=DefenseRecommendationResult)
@@ -225,17 +229,17 @@ async def get_defense_recommendation(req: DefenseRecommendationRequest):
             all_recommendations=all_recs,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.post("/attack-history")
-async def analyze_history(logs: list):
+async def analyze_history(req: AttackHistoryRequest):
     """Analyze a list of attack log entries and return trend analysis."""
     try:
-        result = analyze_attack_history(logs)
+        result = analyze_attack_history(req.logs)
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.get("/defense-coverage")
@@ -246,4 +250,4 @@ async def get_defense_coverage(active: str = ""):
         coverage = compute_defense_coverage(active_list)
         return {"coverage": coverage, "active_defenses": active_list}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
