@@ -1,9 +1,9 @@
-import React, { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import Header from '../components/Header';
 import { useI18n } from '../i18n/I18nProvider';
 import {
   FileText, Brain, Download, RefreshCw, CheckCircle,
-  AlertTriangle, Shield, Zap, Target, Activity,
+  AlertTriangle, Shield, Target, Activity,
   ChevronRight, Clock, BarChart2, Lock, Cpu
 } from 'lucide-react';
 
@@ -16,7 +16,6 @@ const PAYOFF = [
   [-3, 1, 7, 2],
   [2, -2, 5, 0],
 ];
-const ATTACK_STRATEGIES = ['A1', 'A2', 'A3', 'A4'];
 const DEFENSE_STRATEGIES = ['D1', 'D2', 'D3', 'D4'];
 
 function solveMixedNash(matrix) {
@@ -167,7 +166,7 @@ export default function Report() {
   }, [reportText, threatData, exportFormat, scenario, rounds, p, q, v, attackNames, defenseNames]);
 
   /* Parse report into named sections */
-  const sections = React.useMemo(() => {
+  const sections = useMemo(() => {
     if (!reportText) return [];
     const SECTION_TITLES = [
       'EXECUTIVE SUMMARY',

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState } from 'react';
 import Header from '../components/Header';
 import { Target, RefreshCw, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { useI18n } from '../i18n/I18nProvider';
@@ -107,14 +107,6 @@ export default function Analysis() {
 
   const reset = () => setMatrix(DEFAULT_MATRIX.map(r => [...r]));
   const toggle = k => setShowInfo(s => ({ ...s, [k]: !s[k] }));
-
-  const borderFor = color => ({
-    cyan: 'rgba(0,240,255,0.3)', amber: 'rgba(255,214,10,0.3)', green: 'rgba(0,255,102,0.3)'
-  }[color] || 'rgba(255,255,255,0.1)');
-
-  const labelFor = color => ({
-    cyan: 'var(--accent-cyan)', amber: 'var(--accent-amber)', green: 'var(--accent-green)'
-  }[color] || 'var(--text-secondary)');
 
   return (
     <div className="dashboard-layout page-transition">
@@ -362,7 +354,6 @@ export default function Analysis() {
                 <tbody>
                   {pareto.map((pp, i) => {
                     const isNash = isPure(pp.row, pp.col);
-                    const dominated = matrix.flat().some(v => v > pp.att) ? t('analysis.checkLp') : t('analysis.frontier');
                     return (
                       <tr key={i} style={i % 2 === 0 ? { background: 'rgba(255,255,255,0.02)' } : {}}>
                         <td style={TD}><span className="font-mono" style={{ color: 'var(--accent-green)', fontSize: '0.72rem' }}>(A{pp.row + 1},D{pp.col + 1})</span></td>

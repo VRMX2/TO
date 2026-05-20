@@ -22,7 +22,13 @@ export default defineConfig({
         target: apiProxyTarget,
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ''),
-      }
+      },
+      // WebSocket threat stream (same host in dev; nginx proxies in prod)
+      '/ws': {
+        target: apiProxyTarget,
+        changeOrigin: true,
+        ws: true,
+      },
     }
   }
 })

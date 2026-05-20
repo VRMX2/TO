@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useI18n } from '../i18n/I18nProvider';
 
 export default function SplashScreen({ onComplete }) {
@@ -65,17 +65,31 @@ export default function SplashScreen({ onComplete }) {
     return () => clearInterval(timer);
   }, [phase, t]);
 
-  // Particles
-  const particles = useMemo(() =>
-    Array.from({ length: 50 }).map((_, i) => ({
-      id: i,
-      left: `${Math.random() * 100}%`,
-      delay: `${Math.random() * 5}s`,
-      duration: `${4 + Math.random() * 6}s`,
-      size: `${1 + Math.random() * 2.5}px`,
-      color: i % 3 === 0 ? 'rgba(0,255,136,0.7)' : i % 3 === 1 ? 'rgba(168,85,247,0.7)' : 'rgba(0,240,255,0.7)',
-    }))
-  , []);
+  const [particles] = useState(() =>
+    Array.from({ length: 50 }, (_, i) => {
+      const seed = (i * 9301 + 49297) % 233280;
+      const r1 = seed / 233280;
+      const r2 = ((seed * 7) % 233280) / 233280;
+      const r3 = ((seed * 13) % 233280) / 233280;
+      const r4 = ((seed * 19) % 233280) / 233280;
+      return {
+        id: i,
+        left: `${r1 * 100}%`,
+        delay: `${r2 * 5}s`,
+        duration: `${4 + r3 * 6}s`,
+        size: `${1 + r4 * 2.5}px`,
+        color: i % 3 === 0 ? 'rgba(0,255,136,0.7)' : i % 3 === 1 ? 'rgba(168,85,247,0.7)' : 'rgba(0,240,255,0.7)',
+      };
+    })
+  );
+
+  const [cursorOn, setCursorOn] = useState(true);
+  useEffect(() => {
+    const id = setInterval(() => setCursorOn((v) => !v), 300);
+    return () => clearInterval(id);
+  }, []);
+
+  const [clockSec] = useState(() => (performance.now() / 1000).toFixed(2));
 
   const isExiting = phase === 'exiting';
   const isActive = phase !== 'entering';
@@ -289,7 +303,7 @@ export default function SplashScreen({ onComplete }) {
             transition: 'opacity 0.8s ease 0.6s',
           }}>
             {typedText}
-            <span style={{ opacity: Math.sin(Date.now() / 300) > 0 ? 1 : 0, color: 'var(--accent-cyan)' }}>|</span>
+            <span style={{ opacity: cursorOn ? 1 : 0, color: 'var(--accent-cyan)' }}>|</span>
           </div>
 
           {/* Version / Classification badge */}
@@ -368,7 +382,7 @@ export default function SplashScreen({ onComplete }) {
           }}>
             <span>MEM:0x{Math.floor(progress * 1048576 / 100).toString(16).toUpperCase().padStart(7, '0')}</span>
             <span>GT-ENGINE · NASH · PARETO · RL</span>
-            <span>CLK:{(performance.now() / 1000).toFixed(2)}s</span>
+            <span>CLK:{clockSec}s</span>
           </div>
         </div>
 

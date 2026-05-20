@@ -1,4 +1,4 @@
-import React from 'react';
+import { Fragment } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { Grid } from 'lucide-react';
 
@@ -28,7 +28,7 @@ export default function PayoffMatrix() {
 
           {/* Matrix Rows */}
           {matrix.map((row, rIdx) => (
-            <React.Fragment key={rIdx}>
+            <Fragment key={rIdx}>
               <div className="text-red font-mono text-xs" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 A{rIdx + 1}
               </div>
@@ -60,7 +60,7 @@ export default function PayoffMatrix() {
                   </div>
                 );
               })}
-            </React.Fragment>
+            </Fragment>
           ))}
         </div>
 

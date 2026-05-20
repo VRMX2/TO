@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Header from '../components/Header';
 import MatrixEditor from '../components/dashboard/MatrixEditor';
 import PresetManager from '../components/dashboard/PresetManager';
@@ -397,13 +397,13 @@ export default function Dashboard() {
           </div>
           <div style={{ marginBottom:'0.75rem' }}>
             <div className="font-mono" style={{ fontSize:'0.6rem', color:'var(--accent-red)', marginBottom:'0.4rem', letterSpacing:'0.08em' }}>ATTACKER σ*_A</div>
-            {attackerStrategies.map((s, i) => (
+            {attackerStrategies.map((s) => (
               <StratBar key={s.id} label={s.id} name={resolveAttackName(s.id, s.name)} prob={s.prob} color="var(--accent-red)" />
             ))}
           </div>
           <div>
             <div className="font-mono" style={{ fontSize:'0.6rem', color:'var(--accent-cyan)', marginBottom:'0.4rem', letterSpacing:'0.08em' }}>DEFENDER σ*_D</div>
-            {defenderStrategies.map((s, i) => (
+            {defenderStrategies.map((s) => (
               <StratBar key={s.id} label={s.id} name={resolveDefenseName(s.id, s.name)} prob={s.prob} color="var(--accent-cyan)" />
             ))}
           </div>

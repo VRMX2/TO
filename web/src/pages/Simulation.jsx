@@ -1,9 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Header from '../components/Header';
-import {
-  Zap, Shield, Cpu, Activity, Play, Square, RefreshCw,
-  AlertTriangle, CheckCircle, ChevronRight, Wifi, WifiOff, Brain
-} from 'lucide-react';
+import { Zap, Play, Square, RefreshCw, ChevronRight, Brain } from 'lucide-react';
 import { useGameAPI } from '../hooks/useGameAPI';
 import { useI18n } from '../i18n/I18nProvider';
 import {
@@ -257,8 +254,6 @@ export default function Simulation() {
     });
 
     // Update threat & coverage
-    const newThreat = Math.max(5, Math.min(98, prev => prev + (payoff > 0 ? payoff * 3 : payoff * 2)));
-    const newCov = Math.max(5, Math.min(98, prev => prev + (payoff < 0 ? 3 : -2)));
     setThreatLevel(t => Math.max(5, Math.min(98, t + (payoff > 0 ? payoff * 3 : payoff * 2))));
     setCoverage(c => Math.max(5, Math.min(98, c + (payoff < 0 ? 3 : -2))));
 
