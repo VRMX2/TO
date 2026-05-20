@@ -1,4 +1,3 @@
-import React from 'react';
 import Header from '../components/Header';
 import { useI18n } from '../i18n/I18nProvider';
 import { Users, Award, Mail, Terminal, Shield, Zap, Target, Cpu, BookOpen, GitBranch } from 'lucide-react';
@@ -204,6 +203,93 @@ export default function About() {
                   boxShadow: `0 0 10px ${color}10`,
                 }}>{label}</span>
               ))}
+            </div>
+          </div>
+
+          {/* ── Algorithms & Methods ── */}
+          <div className="page-transition delay-4" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+
+            {/* Algorithms */}
+            <div style={{
+              background: 'linear-gradient(145deg, rgba(15,23,42,0.7), rgba(2,6,23,0.9))',
+              border: '1px solid rgba(0,240,255,0.15)',
+              borderTop: '2px solid rgba(0,240,255,0.4)',
+              borderRadius: 16, padding: '1.75rem',
+              backdropFilter: 'blur(12px)',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.4)',
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 20px 50px rgba(0,0,0,0.5), 0 0 20px rgba(0,240,255,0.06)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 10px 40px rgba(0,0,0,0.4)'; }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(0,240,255,0.1)' }}>
+                <GitBranch size={20} color="var(--accent-cyan)" />
+                <h2 className="font-mono" style={{ color: 'var(--accent-cyan)', fontSize: '1rem', margin: 0, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Algorithmes & Méthodes</h2>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {[
+                  { name: 'Nash Equilibrium Solver', desc: 'Support enumeration + Lemke-Howson', color: 'var(--accent-cyan)' },
+                  { name: 'Fictitious Play', desc: 'Iterative convergence (4000 iterations)', color: 'var(--accent-amber)' },
+                  { name: 'Pareto Optimality', desc: 'Non-dominated profile detection', color: 'var(--accent-green)' },
+                  { name: 'Minimax Theorem', desc: 'Zero-sum game value computation', color: 'var(--accent-red)' },
+                  { name: 'RL Adaptive Defense', desc: 'Reinforcement learning defense agent', color: 'var(--accent-purple)' },
+                ].map(({ name, desc, color }) => (
+                  <div key={name} style={{
+                    display: 'flex', alignItems: 'center', gap: '0.65rem',
+                    background: `${color}08`,
+                    padding: '0.6rem 0.75rem',
+                    borderRadius: 8, border: `1px solid ${color}18`,
+                  }}>
+                    <div style={{ width: 6, height: 6, background: color, borderRadius: 2, boxShadow: `0 0 6px ${color}`, flexShrink: 0 }} />
+                    <div>
+                      <span className="font-mono" style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', display: 'block' }}>{name}</span>
+                      <span className="font-mono" style={{ fontSize: '0.55rem', color: 'var(--text-muted)' }}>{desc}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Academic References */}
+            <div style={{
+              background: 'linear-gradient(145deg, rgba(15,23,42,0.7), rgba(2,6,23,0.9))',
+              border: '1px solid rgba(255,59,48,0.15)',
+              borderTop: '2px solid rgba(255,59,48,0.4)',
+              borderRadius: 16, padding: '1.75rem',
+              backdropFilter: 'blur(12px)',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.4)',
+              transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 20px 50px rgba(0,0,0,0.5), 0 0 20px rgba(255,59,48,0.06)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 10px 40px rgba(0,0,0,0.4)'; }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem', paddingBottom: '1rem', borderBottom: '1px solid rgba(255,59,48,0.1)' }}>
+                <BookOpen size={20} color="var(--accent-red)" />
+                <h2 className="font-mono" style={{ color: 'var(--accent-red)', fontSize: '1rem', margin: 0, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Références Académiques</h2>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {[
+                  { ref: 'Osborne & Rubinstein', title: 'A Course in Game Theory', year: '1994' },
+                  { ref: 'Alpcan & Başar', title: 'Network Security: A Decision and Game-Theoretic Approach', year: '2010' },
+                  { ref: 'Shoham & Leyton-Brown', title: 'Multiagent Systems: Algorithmic & Game-Theoretic Foundations', year: '2008' },
+                  { ref: 'Do et al.', title: 'Game Theory for Cyber Deception', year: '2020' },
+                  { ref: 'Nash, J.F.', title: 'Equilibrium Points in N-Person Games', year: '1950' },
+                ].map(({ ref, title, year }) => (
+                  <div key={ref} style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '0.65rem',
+                    background: 'rgba(255,59,48,0.04)',
+                    padding: '0.6rem 0.75rem',
+                    borderRadius: 8, border: '1px solid rgba(255,59,48,0.1)',
+                  }}>
+                    <div style={{ width: 6, height: 6, background: 'var(--accent-red)', borderRadius: 2, boxShadow: '0 0 6px var(--accent-red)', flexShrink: 0, marginTop: 4 }} />
+                    <div>
+                      <span className="font-mono" style={{ fontSize: '0.65rem', color: 'var(--accent-red)' }}>{ref}</span>
+                      <span className="font-mono" style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', display: 'block', marginTop: 1 }}>{title}</span>
+                      <span className="font-mono" style={{ fontSize: '0.52rem', color: 'var(--text-muted)' }}>{year}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 

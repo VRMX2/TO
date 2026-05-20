@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Hexagon } from 'lucide-react';
 import { useGameStore } from '../store/gameStore';
@@ -91,7 +90,26 @@ export default function Header() {
                 textShadow: isActive ? '0 0 10px rgba(0,240,255,0.5)' : 'none',
                 boxShadow: isActive ? '0 4px 15px rgba(0,240,255,0.1), inset 0 1px 1px rgba(255,255,255,0.1)' : 'none',
                 transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)'
-              }}>
+              }}
+                onMouseEnter={e => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+                    e.currentTarget.style.color = 'var(--text-primary)';
+                    e.currentTarget.style.textShadow = '0 0 8px rgba(0,240,255,0.25)';
+                    e.currentTarget.style.boxShadow = '0 2px 10px rgba(0,240,255,0.05)';
+                  }
+                }}
+                onMouseLeave={e => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.borderColor = 'transparent';
+                    e.currentTarget.style.color = 'var(--text-secondary)';
+                    e.currentTarget.style.textShadow = 'none';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }
+                }}
+              >
                 {tab.name}
               </Link>
             );

@@ -199,6 +199,8 @@ h1, h2, h3, h4, h5, h6 { font-weight: 500; letter-spacing: 0.02em; }
 .delay-2 { animation-delay: 0.2s; }
 .delay-3 { animation-delay: 0.3s; }
 .delay-4 { animation-delay: 0.4s; }
+.delay-5 { animation-delay: 0.55s; }
+.delay-6 { animation-delay: 0.7s; }
 
 @keyframes fadeUp {
   to { opacity: 1; transform: translateY(0) translateZ(0); }

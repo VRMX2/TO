@@ -1,4 +1,3 @@
-import React from 'react';
 import { useGameStore } from '../store/gameStore';
 import { Cpu, Zap, ShieldAlert, Activity } from 'lucide-react';
 
