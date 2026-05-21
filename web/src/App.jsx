@@ -8,6 +8,7 @@ import About from './pages/About';
 import SplashScreen from './components/SplashScreen';
 import SystemStatusBar from './components/SystemStatusBar';
 import './styles/globals.css';
+import './styles/pro.css';
 import './styles/dashboard.css';
 
 function App() {

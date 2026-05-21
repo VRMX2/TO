@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import Header from '../components/Header';
+import AppLayout from '../components/ui/AppLayout';
+import PageHero from '../components/ui/PageHero';
 import { Zap, Play, Square, RefreshCw, ChevronRight, Brain } from 'lucide-react';
 import { useGameAPI } from '../hooks/useGameAPI';
 import { useI18n } from '../i18n/I18nProvider';
@@ -338,14 +339,12 @@ export default function Simulation() {
   const progress = (round / maxRounds) * 100;
 
   return (
-    <div className="dashboard-layout page-transition">
-      <Header />
-      <div className="main-content page-transition delay-1" style={{ gridColumn: '1 / -1', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto' }}>
+    <AppLayout wide>
+      <div className="page-transition delay-1" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', paddingTop: '0.5rem' }}>
+        <PageHero icon={Zap} title={t('simulation.title')} subtitle={t('simulation.aiSubtitle')} />
 
         {/* ── CONTROL BAR ── */}
-        <div className="page-transition delay-2" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', background: 'var(--bg-panel)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '0.75rem 1rem' }}>
-          <Zap size={16} className="text-red" />
-          <span className="font-mono text-primary" style={{ fontSize: '0.8rem', letterSpacing: '0.08em' }}>{t('simulation.title')}</span>
+        <div className="page-transition delay-2 controls-row" style={{ margin: 0 }}>
           <div style={{ flex: 1 }} />
 
           {/* Mode */}
@@ -635,7 +634,7 @@ export default function Simulation() {
       </div>
 
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}`}</style>
-    </div>
+    </AppLayout>
   );
 }
 

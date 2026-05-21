@@ -110,7 +110,7 @@ export default function SystemStatusBar() {
       </div>
       <div className="system-status-bar__badge">
         <span className="system-status-bar__badge-dot" />
-        <span>v2.1 SECURE</span>
+        <span>v2.2 PRO</span>
       </div>
     </footer>
   );

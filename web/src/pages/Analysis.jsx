@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import Header from '../components/Header';
+import AppLayout from '../components/ui/AppLayout';
+import PageHero from '../components/ui/PageHero';
 import { Target, RefreshCw, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { useI18n } from '../i18n/I18nProvider';
 
@@ -109,26 +110,23 @@ export default function Analysis() {
   const toggle = k => setShowInfo(s => ({ ...s, [k]: !s[k] }));
 
   return (
-    <div className="dashboard-layout page-transition">
-      <Header />
-      <div className="main-content page-transition delay-1" style={{ gridColumn: '1 / -1', padding: '1.5rem', overflowY: 'auto' }}>
-
-        {/* Page Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Target size={22} className="text-cyan" />
-            <div>
-              <h2 className="text-primary font-mono" style={{ fontSize: '1rem', margin: 0, letterSpacing: '0.1em' }}>{t('analysis.title')}</h2>
-              <p className="text-secondary" style={{ fontSize: '0.72rem', margin: 0, marginTop: 2 }}>{t('analysis.subtitle')}</p>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button onClick={randomize} style={btnSt('rgba(0,240,255,0.1)', 'var(--accent-cyan)')}>
-              <RefreshCw size={11} /> {t('analysis.randomize')}
-            </button>
-            <button onClick={reset} style={btnSt('rgba(255,255,255,0.05)', 'var(--text-muted)')}>{t('analysis.reset')}</button>
-          </div>
-        </div>
+    <AppLayout wide>
+      <div className="page-transition delay-1" style={{ paddingTop: '0.5rem' }}>
+        <PageHero
+          icon={Target}
+          title={t('analysis.title')}
+          subtitle={t('analysis.subtitle')}
+          actions={
+            <>
+              <button type="button" className="btn btn-cyan" onClick={randomize}>
+                <RefreshCw size={12} /> {t('analysis.randomize')}
+              </button>
+              <button type="button" className="btn btn-amber" onClick={reset}>
+                {t('analysis.reset')}
+              </button>
+            </>
+          }
+        />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
 
@@ -380,7 +378,7 @@ export default function Analysis() {
           </div>
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
 
@@ -441,4 +439,3 @@ const TBLST = { width: '100%', borderCollapse: 'collapse' };
 const THEAD = { padding: '6px 8px', fontFamily: 'var(--font-mono)', fontSize: '0.58rem', color: 'var(--text-muted)', borderBottom: '1px solid rgba(255,255,255,0.06)', textAlign: 'left', letterSpacing: '0.06em', textTransform: 'uppercase' };
 const TD = { padding: '7px 8px', borderBottom: '1px solid rgba(255,255,255,0.04)', verticalAlign: 'middle' };
 const TH = { fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '5px 6px', letterSpacing: '0.05em', textAlign: 'center', fontSize: '0.68rem' };
-const btnSt = (bg, color) => ({ background: bg, border: `1px solid ${color}55`, color, padding: '6px 14px', borderRadius: 8, cursor: 'pointer', fontSize: '0.62rem', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 6, letterSpacing: '0.06em', textTransform: 'uppercase', transition: 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)' });

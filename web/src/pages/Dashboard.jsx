@@ -12,6 +12,7 @@ import { Target, Shield, Zap, Activity, RefreshCw, Cpu, TrendingUp, AlertTriangl
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts';
+import MetricsStrip from '../components/ui/MetricsStrip';
 
 export default function Dashboard() {
   const { t } = useI18n();
@@ -332,9 +333,38 @@ export default function Dashboard() {
 
   const gameValue = nashData?.attacker_utility ?? 0;
 
+  const metrics = [
+    {
+      label: 'Game Value v*',
+      value: nashData ? gameValue.toFixed(3) : '—',
+      hint: nashData ? 'Nash equilibrium' : t('dashboard.connecting'),
+      accent: 'var(--accent-cyan)',
+    },
+    {
+      label: t('app.threatLevel'),
+      value: `${threatLevel}%`,
+      hint: threatLevel > 60 ? t('app.high') : threatLevel > 30 ? t('app.medium') : t('app.low'),
+      accent: threatLevel > 60 ? 'var(--accent-red)' : 'var(--accent-amber)',
+    },
+    {
+      label: 'Defense Coverage',
+      value: `${defenseCoverage}%`,
+      hint: 'Active posture',
+      accent: 'var(--accent-green)',
+    },
+    {
+      label: 'Live Stream',
+      value: wsConnected ? 'ONLINE' : 'OFFLINE',
+      hint: wsConnected ? t('dashboard.wsLive') : reconnectInSec > 0 ? t('dashboard.reconnectIn', { sec: reconnectInSec }) : t('dashboard.wsOffline'),
+      accent: wsConnected ? 'var(--accent-green)' : 'var(--accent-red)',
+    },
+  ];
+
   return (
     <div className="dashboard-layout page-transition">
       <Header />
+
+      <MetricsStrip items={metrics} />
 
       {/* Controls Bar */}
       <div className="controls-row page-transition delay-1">

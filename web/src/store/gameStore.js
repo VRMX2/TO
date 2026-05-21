@@ -82,7 +82,7 @@ export const useGameStore = create((set) => ({
     aiLogs: [{ id: Date.now() + Math.random(), ...log }, ...state.aiLogs.slice(0, 4)]
   })),
 
-  setThreatLevel: (level) => set({ threatLevel: level }),
+  setThreatLevel: (level) => set((state) => ({ threatLevel: typeof level === 'function' ? level(state.threatLevel) : level })),
 
   updateNashResults: ({ nashData, paretoData }) => set((state) => {
     // Merge backend data if available

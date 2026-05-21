@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useMemo } from 'react';
-import Header from '../components/Header';
+import AppLayout from '../components/ui/AppLayout';
+import PageHero from '../components/ui/PageHero';
 import { useI18n } from '../i18n/I18nProvider';
 import { apiHeaders } from '../lib/apiClient';
 import {
@@ -195,30 +196,21 @@ export default function Report() {
   const sectionIcons = [FileText, Target, AlertTriangle, Shield, CheckCircle];
 
   return (
-    <div className="dashboard-layout page-transition">
-      <Header />
-      <div className="page-transition delay-1" style={{ gridColumn: '1/-1', overflowY: 'auto', padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-        {/* Page Title */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <FileText size={22} style={{ color: 'var(--accent-green)' }} />
-            <div>
-              <h2 className="text-primary font-mono" style={{ fontSize: '1rem', margin: 0, letterSpacing: '0.1em' }}>
-                {t('report.title')}
-              </h2>
-              <p className="text-secondary" style={{ fontSize: '0.72rem', margin: 0, marginTop: 2 }}>
-                {t('report.subtitle')}
-              </p>
+    <AppLayout wide>
+      <div className="page-transition delay-1" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', paddingTop: '0.5rem' }}>
+        <PageHero
+          icon={FileText}
+          title={t('report.title')}
+          subtitle={t('report.subtitle')}
+          actions={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Brain size={13} style={{ color: 'var(--accent-amber)' }} />
+              <span className="font-mono" style={{ fontSize: '0.6rem', color: 'var(--accent-amber)' }}>
+                {t('report.powered')}
+              </span>
             </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Brain size={13} style={{ color: 'var(--accent-amber)' }} />
-            <span className="font-mono" style={{ fontSize: '0.6rem', color: 'var(--accent-amber)' }}>
-              {t('report.powered')}
-            </span>
-          </div>
-        </div>
+          }
+        />
 
         {/* Top Row: Config + Nash Summary */}
         <div className="page-transition delay-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
@@ -533,7 +525,7 @@ export default function Report() {
         select { background: var(--bg-panel); border: 1px solid rgba(255,255,255,0.12); color: var(--text-primary); padding: 3px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.62rem; outline: none; cursor: pointer; }
         select:focus { border-color: rgba(0,240,255,0.4); }
       `}</style>
-    </div>
+    </AppLayout>
   );
 }
 

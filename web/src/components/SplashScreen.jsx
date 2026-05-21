@@ -318,7 +318,7 @@ export default function SplashScreen({ onComplete }) {
               color: 'rgba(255,214,10,0.7)', background: 'rgba(255,214,10,0.07)',
               border: '1px solid rgba(255,214,10,0.2)', borderRadius: 4,
               padding: '3px 10px',
-            }}>v2.0 · ACADEMIC</div>
+            }}>v2.2 · PRO</div>
             <div style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,0.2)' }} />
             <div style={{
               fontFamily: 'var(--font-mono)', fontSize: '0.55rem', letterSpacing: '0.15em',

@@ -1,4 +1,4 @@
-import Header from '../components/Header';
+import AppLayout from '../components/ui/AppLayout';
 import { useI18n } from '../i18n/I18nProvider';
 import { Users, Award, Mail, Terminal, Shield, Zap, Target, Cpu, BookOpen, GitBranch } from 'lucide-react';
 
@@ -24,11 +24,9 @@ export default function About() {
   ];
 
   return (
-    <div className="dashboard-layout page-transition">
-      <Header />
+    <AppLayout>
       <div style={{
-        gridColumn: '1 / -1',
-        padding: '2rem',
+        padding: '1.5rem 0 2rem',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -77,7 +75,7 @@ export default function About() {
             {/* Version badge */}
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.25rem 1rem', background: 'rgba(0,240,255,0.08)', border: '1px solid rgba(0,240,255,0.2)', borderRadius: 20 }}>
               <Zap size={11} color="var(--accent-cyan)" />
-              <span className="font-mono" style={{ fontSize: '0.6rem', color: 'var(--accent-cyan)', letterSpacing: '0.2em' }}>VERSION 2.0 · ACADEMIC RELEASE</span>
+              <span className="font-mono" style={{ fontSize: '0.6rem', color: 'var(--accent-cyan)', letterSpacing: '0.2em' }}>VERSION 2.2 · PRO EDITION</span>
             </div>
 
             <div style={{ zIndex: 1 }}>
@@ -295,6 +293,6 @@ export default function About() {
 
         </div>
       </div>
-    </div>
+    </AppLayout>
   );
 }
