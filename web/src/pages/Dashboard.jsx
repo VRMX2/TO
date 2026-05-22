@@ -377,7 +377,7 @@ export default function Dashboard() {
             options={[['rl','Reinforcement Learning'],['static','Static Optimal'],['none','Disabled']]} />
         </div>
         <div className="controls-center">
-          <button className="btn btn-cyan" onClick={fetchNash} disabled={loading.nash} id="btn-compute-nash">
+          <button className="btn btn-cyan" onClick={() => fetchNash()} disabled={loading.nash} id="btn-compute-nash">
             {loading.nash ? <RefreshCw size={14} style={{animation:'spin 1s linear infinite'}} /> : <Target size={14} />}
             {loading.nash ? t('dashboard.computing') : t('dashboard.computeNash')}
           </button>

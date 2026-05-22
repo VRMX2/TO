@@ -4,6 +4,7 @@ from api.schemas import (
     DefenseRecommendationRequest, DefenseRecommendationResult, DefenseRecommendation,
     ReportRequest, ReportResult,
     RoundAdviceRequest, AttackHistoryRequest,
+    TacticalAnalysisRequest, TacticalAnalysisResult,
 )
 from app.security import ai_rate_limiter, client_ip, safe_error_detail
 from ai.pattern_recognizer import classify_threat, analyze_attack_history
@@ -204,6 +205,51 @@ async def round_advice(req: RoundAdviceRequest, request: Request):
             "Fallback advice: prioritize mitigation for the most likely attack vector and keep Nash recomputation active."
         )
         return {"content": [{"text": text}]}
+
+
+@router.post("/tactical-analysis", response_model=TacticalAnalysisResult)
+async def tactical_analysis(req: TacticalAnalysisRequest, request: Request):
+    """Generate a short tactical analysis using Groq."""
+    ai_rate_limiter.check(client_ip(request))
+    
+    if not settings.groq_api_key:
+        fallback = (
+            f"Tactical analysis fallback for round {req.match_round}: "
+            f"Attacker played {req.attacker_strategy} and Defender played {req.defender_strategy}. "
+            f"Payoff is {req.payoff:+.2f}. Threat level is {req.threat_level}% with defense coverage of {req.defense_coverage}%. "
+            "Recommendation: continue monitoring and re-balance defense assets matching attacker's highest-probability strategies."
+        )
+        return TacticalAnalysisResult(analysis=fallback)
+
+    try:
+        client = Groq(api_key=settings.groq_api_key)
+
+        history_str = " ".join(
+            f"[R{h.get('round', '?')}: {h.get('attName', h.get('att', '?'))} vs {h.get('defName', h.get('def', '?'))} -> {h.get('payoff', 0):+.2f}]"
+            for h in req.history[-5:]
+        )
+
+        prompt = f"""You are an AI security analyst embedded in a real-time cyber-security game-theory simulation.
+
+Current simulation state (Round {req.match_round}):
+- Attacker played: {req.attacker_strategy}
+- Defender played: {req.defender_strategy}
+- Payoff this round: {req.payoff:+.2f} (positive = attacker wins)
+- Threat level: {req.threat_level}%
+- Defense coverage: {req.defense_coverage}%
+- Recent history: {history_str}
+
+Give a concise 2-3 sentence tactical analysis: what just happened, whether either player deviated from expected optimal game-theoretic play, and one specific recommendation for the defender next round. Be precise. No bullet points."""
+
+        msg = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            max_tokens=200,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        text = msg.choices[0].message.content
+        return TacticalAnalysisResult(analysis=text)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=safe_error_detail(e))
 
 
 @router.post("/analyze-threat", response_model=ThreatAnalysisResult)

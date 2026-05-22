@@ -134,6 +134,25 @@ async function askClaude(simState) {
   return data.content?.[0]?.text || 'Analysis unavailable.';
 }
 
+async function askAI(simState) {
+  const { round, attStrat, defStrat, payoff, threat, coverage, history } = simState;
+  const response = await fetch('/api/ai/tactical-analysis', {
+    method: 'POST',
+    headers: apiHeaders(),
+    body: JSON.stringify({
+      match_round: round,
+      attacker_strategy: attStrat.name,
+      defender_strategy: defStrat.name,
+      payoff,
+      threat_level: threat,
+      defense_coverage: coverage,
+      history: history.slice(-5),
+    })
+  });
+  const data = await response.json();
+  return data.analysis || 'Analysis unavailable.';
+}
+
 /* ═══════════════════════════════════════════════════════
    MAIN SIMULATION PAGE
 ═══════════════════════════════════════════════════════ */
@@ -561,6 +580,7 @@ export default function Simulation() {
                 </div>
               </div>
               {round > 0 && !running && !aiLoading && (
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
                 <button onClick={() => {
                   if (history.length === 0) return;
                   setAiLoading(true);
@@ -577,9 +597,28 @@ export default function Simulation() {
                   })
                     .then(t => { setAiAnalysis(t); setAiLoading(false); })
                     .catch(() => setAiLoading(false));
-                }} style={{ ...ctrlBtn('var(--accent-amber)', 'rgba(255,214,10,0.1)'), marginTop: '0.5rem', width: '100%', justifyContent: 'center', fontSize: '0.62rem' }}>
+                }} style={{ ...ctrlBtn('var(--accent-amber)', 'rgba(255,214,10,0.1)'), flex: 1, justifyContent: 'center', fontSize: '0.62rem' }}>
                   <Brain size={11} /> {t('simulation.requestAi')}
                 </button>
+                <button onClick={() => {
+                  if (history.length === 0) return;
+                  setAiLoading(true);
+                  const last = history[history.length - 1];
+                  askAI({
+                    round,
+                    attStrat: { ...(ATTACK_STRATEGIES.find((s) => s.id === last.att) || {}), name: getAttackNameById(last.att) },
+                    defStrat: { ...(DEFENSE_STRATEGIES.find((s) => s.id === last.def) || {}), name: getDefenseNameById(last.def) },
+                    payoff: last.payoff,
+                    threat: threatLevel,
+                    coverage,
+                    history,
+                  })
+                    .then(t => { setAiAnalysis(t); setAiLoading(false); })
+                    .catch(() => setAiLoading(false));
+                }} style={{ ...ctrlBtn('var(--accent-cyan)', 'rgba(0,240,255,0.1)'), flex: 1, justifyContent: 'center', fontSize: '0.62rem' }}>
+                  <Brain size={11} /> TACTICAL ANALYSIS
+                </button>
+                </div>
               )}
             </Panel>
 

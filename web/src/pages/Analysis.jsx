@@ -65,7 +65,7 @@ function findPareto(matrix) {
 }
 
 const DEFAULT_MATRIX = [
-  [5, 2, -1, 4],
+  [5, 6, 7, 8],
   [4, 6, 8, 3],
   [-3, 1, 7, 2],
   [2, -2, 5, 0],
@@ -82,13 +82,32 @@ export default function Analysis() {
   const [editCell, setEditCell] = useState(null);
   const [editVal, setEditVal] = useState('');
   const [showInfo, setShowInfo] = useState({ pure: true, mixed: true, pareto: true });
+  const [manualP, setManualP] = useState(null);
+  const [manualQ, setManualQ] = useState(null);
 
+  const computed = solveMixedNash(matrix);
   const pureNash = findPureNash(matrix);
-  const { p, q, gameValue } = solveMixedNash(matrix);
   const pareto = findPareto(matrix);
+
+  const p = manualP || computed.p;
+  const q = manualQ || computed.q;
+  const gameValue = computed.gameValue;
 
   const isPure = (r, c) => pureNash.some(n => n.row === r && n.col === c);
   const isPareto = (r, c) => pareto.some(pp => pp.row === r && pp.col === c);
+
+  const defBR = matrix.map(row => { const m = Math.min(...row); return row.map(v => v === m); });
+  const attBR = matrix.map((row, r) => row.map((val, c) => { const m = Math.max(...matrix.map(rr => rr[c])); return val === m; }));
+
+  const setProb = (type, idx, val) => {
+    const arr = type === 'p' ? [...(manualP || computed.p)] : [...(manualQ || computed.q)];
+    arr[idx] = val;
+    const sum = arr.reduce((a, b) => a + b, 0);
+    const normalized = arr.map(v => sum > 0 ? v / sum : 1 / arr.length);
+    if (type === 'p') setManualP(normalized); else setManualQ(normalized);
+  };
+
+  const resetManual = () => { setManualP(null); setManualQ(null); };
 
   const handleCellClick = (r, c) => { setEditCell({ r, c }); setEditVal(String(matrix[r][c])); };
 
@@ -179,6 +198,8 @@ export default function Analysis() {
                               )}
                               {pure && <span style={{ position: 'absolute', top: 1, right: 3, fontSize: '0.48rem', color: 'var(--accent-amber)', fontFamily: 'var(--font-mono)' }}>NE</span>}
                               {pare && !pure && <span style={{ position: 'absolute', top: 1, right: 3, fontSize: '0.48rem', color: 'var(--accent-green)', fontFamily: 'var(--font-mono)' }}>PO</span>}
+                              {defBR[r][c] && !pure && <span style={{ position: 'absolute', bottom: 1, left: 3, fontSize: '0.45rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)', opacity: 0.6 }}>D</span>}
+                              {attBR[r][c] && !pure && <span style={{ position: 'absolute', bottom: 1, right: 3, fontSize: '0.45rem', color: 'var(--accent-red)', fontFamily: 'var(--font-mono)', opacity: 0.6 }}>A</span>}
                             </td>
                           );
                         })}
@@ -188,7 +209,7 @@ export default function Analysis() {
                 </table>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginTop: '0.75rem' }}>
-                {[['var(--accent-amber)', t('analysis.legendNE')], ['var(--accent-green)', t('analysis.legendPO')], ['var(--accent-cyan)', t('analysis.legendGain')], ['var(--accent-red)', t('analysis.legendLoss')]].map(([clr, lbl]) => (
+                {[['var(--accent-amber)', t('analysis.legendNE')], ['var(--accent-green)', t('analysis.legendPO')], ['var(--accent-cyan)', 'D  Defender BR (row min)'], ['var(--accent-red)', 'A  Attacker BR (col max)']].map(([clr, lbl]) => (
                   <div key={lbl} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: '0.58rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>
                     <div style={{ width: 8, height: 8, background: clr, borderRadius: 1 }} />{lbl}
                   </div>
@@ -198,28 +219,33 @@ export default function Analysis() {
 
             {/* Mixed Strategy Probabilities */}
             <Panel color="amber" title={t('analysis.mixedProb')}>
+              <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                <button onClick={() => setManualP(null)} style={{ ...tinyBtn, color: 'var(--accent-red)', borderColor: 'rgba(255,59,48,0.4)' }}>RESET σ_A</button>
+                <button onClick={() => setManualQ(null)} style={{ ...tinyBtn, color: 'var(--accent-cyan)', borderColor: 'rgba(0,240,255,0.4)' }}>RESET σ_D</button>
+                <button onClick={resetManual} style={{ ...tinyBtn, color: 'var(--text-muted)', borderColor: 'rgba(255,255,255,0.15)' }}>RESET BOTH</button>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <div className="text-red font-mono" style={{ fontSize: '0.62rem', marginBottom: '0.5rem' }}>{t('analysis.attackerSigma')}</div>
+                  <div className="text-red font-mono" style={{ fontSize: '0.62rem', marginBottom: '0.5rem' }}>{t('analysis.attackerSigma')} {manualP && <span style={{ color: 'var(--accent-amber)', fontSize: '0.52rem' }}>(MANUAL)</span>}</div>
                   {p.map((prob, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.5rem' }}>
-                      <span className="font-mono" style={{ width: 22, fontSize: '0.62rem', color: 'var(--text-muted)' }}>A{i + 1}</span>
-                      <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 6, overflow: 'hidden' }}>
-                        <div style={{ width: `${prob * 100}%`, height: '100%', background: 'linear-gradient(90deg, rgba(255,59,48,0.6), var(--accent-red))', borderRadius: 6, transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: `0 0 8px rgba(255,59,48,0.4)` }} />
-                      </div>
-                      <span className="font-mono" style={{ width: 40, fontSize: '0.62rem', color: 'var(--accent-red)', textAlign: 'right' }}>{pct(prob)}</span>
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: '0.4rem' }}>
+                      <span className="font-mono" style={{ width: 20, fontSize: '0.62rem', color: 'var(--text-muted)' }}>A{i + 1}</span>
+                      <input type="range" min={0} max={1} step={0.01} value={prob}
+                        onChange={e => setProb('p', i, parseFloat(e.target.value))}
+                        style={{ flex: 1, height: 4, accentColor: 'var(--accent-red)', cursor: 'pointer' }} />
+                      <span className="font-mono" style={{ width: 38, fontSize: '0.62rem', color: 'var(--text-secondary)', textAlign: 'right' }}>{pct(prob)}</span>
                     </div>
                   ))}
                 </div>
                 <div>
-                  <div className="text-cyan font-mono" style={{ fontSize: '0.62rem', marginBottom: '0.5rem' }}>{t('analysis.defenderSigma')}</div>
+                  <div className="text-cyan font-mono" style={{ fontSize: '0.62rem', marginBottom: '0.5rem' }}>{t('analysis.defenderSigma')} {manualQ && <span style={{ color: 'var(--accent-amber)', fontSize: '0.52rem' }}>(MANUAL)</span>}</div>
                   {q.map((prob, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: '0.5rem' }}>
-                      <span className="font-mono" style={{ width: 22, fontSize: '0.62rem', color: 'var(--text-muted)' }}>D{i + 1}</span>
-                      <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.05)', borderRadius: 6, overflow: 'hidden' }}>
-                        <div style={{ width: `${prob * 100}%`, height: '100%', background: 'linear-gradient(90deg, rgba(0,240,255,0.5), var(--accent-cyan))', borderRadius: 6, transition: 'width 0.6s cubic-bezier(0.16, 1, 0.3, 1)', boxShadow: `0 0 8px rgba(0,240,255,0.4)` }} />
-                      </div>
-                      <span className="font-mono" style={{ width: 40, fontSize: '0.62rem', color: 'var(--accent-cyan)', textAlign: 'right' }}>{pct(prob)}</span>
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: '0.4rem' }}>
+                      <span className="font-mono" style={{ width: 20, fontSize: '0.62rem', color: 'var(--text-muted)' }}>D{i + 1}</span>
+                      <input type="range" min={0} max={1} step={0.01} value={prob}
+                        onChange={e => setProb('q', i, parseFloat(e.target.value))}
+                        style={{ flex: 1, height: 4, accentColor: 'var(--accent-cyan)', cursor: 'pointer' }} />
+                      <span className="font-mono" style={{ width: 38, fontSize: '0.62rem', color: 'var(--text-secondary)', textAlign: 'right' }}>{pct(prob)}</span>
                     </div>
                   ))}
                 </div>
@@ -241,7 +267,10 @@ export default function Analysis() {
             {/* Pure Nash Table */}
             <Panel color="amber" title={t('analysis.pureTitle')} badge={pureNash.length === 0 ? t('analysis.noneFound') : `${pureNash.length} ${t('analysis.found')}`}>
               <Collapse open={showInfo.pure} onToggle={() => toggle('pure')}>
-                <span dangerouslySetInnerHTML={{ __html: t('analysis.pureTheory') }} />
+                <strong>How to find it — mutual best-response:</strong><br />
+                ① <strong>Defender's turn:</strong> Fix each A_r, pick the defense that minimizes attacker's gain (smallest value in that row) → marked <span style={{ color: 'var(--accent-cyan)' }}>D</span>.<br />
+                ② <strong>Attacker's turn:</strong> Fix each D_c, pick the attack that maximizes their gain (largest value in that column) → marked <span style={{ color: 'var(--accent-red)' }}>A</span>.<br />
+                ③ <strong>Pure Nash:</strong> The cell where both chose each other (marked <span style={{ color: 'var(--accent-amber)' }}>NE</span>) — neither player can improve by changing alone.
               </Collapse>
               {pureNash.length === 0 ? (
                 <div style={{ padding: '1rem', textAlign: 'center', border: '1px dashed rgba(255,214,10,0.25)', borderRadius: 6 }}>
@@ -439,3 +468,4 @@ const TBLST = { width: '100%', borderCollapse: 'collapse' };
 const THEAD = { padding: '6px 8px', fontFamily: 'var(--font-mono)', fontSize: '0.58rem', color: 'var(--text-muted)', borderBottom: '1px solid rgba(255,255,255,0.06)', textAlign: 'left', letterSpacing: '0.06em', textTransform: 'uppercase' };
 const TD = { padding: '7px 8px', borderBottom: '1px solid rgba(255,255,255,0.04)', verticalAlign: 'middle' };
 const TH = { fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '5px 6px', letterSpacing: '0.05em', textAlign: 'center', fontSize: '0.68rem' };
+const tinyBtn = { background: 'transparent', border: '1px solid', borderRadius: 3, padding: '2px 7px', cursor: 'pointer', fontSize: '0.55rem', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' };

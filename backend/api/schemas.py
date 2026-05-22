@@ -243,6 +243,20 @@ class RoundAdviceRequest(BaseModel):
     coverage: float = Field(default=0, ge=0, le=100)
 
 
+class TacticalAnalysisRequest(BaseModel):
+    match_round: int = Field(..., ge=0, le=10_000)
+    attacker_strategy: str = Field(..., max_length=128)
+    defender_strategy: str = Field(..., max_length=128)
+    payoff: float = Field(..., ge=-10_000, le=10_000)
+    threat_level: float = Field(..., ge=0, le=100)
+    defense_coverage: float = Field(..., ge=0, le=100)
+    history: List[Dict[str, Any]] = Field(default_factory=list, max_length=500)
+
+
+class TacticalAnalysisResult(BaseModel):
+    analysis: str
+
+
 class AttackHistoryRequest(BaseModel):
     logs: List[Dict[str, Any]] = Field(default_factory=list, max_length=500)
 
