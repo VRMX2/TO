@@ -111,22 +111,29 @@ function NetworkSVG({ attackingNode, defendingNode, packets, nodeStates, nodeLab
 ═══════════════════════════════════════════════════════ */
 async function askClaude(simState) {
   const { round, attStrat, defStrat, payoff, threat, coverage, history, mixedNash } = simState;
-  const response = await fetch('/api/ai/round-advice', {
-    method: 'POST',
-    headers: apiHeaders(),
-    body: JSON.stringify({
-      round,
-      attacker: attStrat.name,
-      defender: defStrat.name,
-      payoff,
-      threat,
-      coverage,
-      history: history.slice(-5),
-      mixedNash
-    })
-  });
-  const data = await response.json();
-  return data.content?.[0]?.text || 'Analysis unavailable.';
+  try {
+    const response = await fetch('/api/ai/round-advice', {
+      method: 'POST',
+      headers: apiHeaders(),
+      body: JSON.stringify({
+        round,
+        attacker: attStrat.name,
+        defender: defStrat.name,
+        payoff,
+        threat,
+        coverage,
+        history: history.slice(-5),
+        mixedNash
+      })
+    });
+    if (!response.ok) throw new Error("Backend unavailable");
+    const data = await response.json();
+    return data.content?.[0]?.text || 'Analysis unavailable.';
+  } catch (err) {
+    console.warn("Backend unavailable. Using offline mock analysis.");
+    await new Promise(r => setTimeout(r, 600)); // Simulate thinking delay
+    return `[OFFLINE MOCK] Analysis for Round ${round}: The attacker deployed ${attStrat.name} and the defender countered with ${defStrat.name}. This resulted in a payoff of ${payoff > 0 ? '+' : ''}${payoff}. The current threat level is at ${threat}% with a coverage of ${coverage}%. To optimize strategy moving forward, the defender should consider shifting probabilities closer to the theoretical Nash equilibrium.`;
+  }
 }
 
 async function askAI(simState) {

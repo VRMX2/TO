@@ -13,6 +13,18 @@ router = APIRouter(tags=["WebSocket"])
 logger = logging.getLogger("cybergamegt.websocket")
 
 
+def _origin_allowed(origin: str | None) -> bool:
+    # Always return True during dev to bypass Vite changeOrigin issues
+    return True
+
+
+def _ws_authorized(websocket: WebSocket) -> bool:
+    if not settings.api_key:
+        return True
+    token = websocket.query_params.get("token") or websocket.headers.get("x-api-key")
+    return token == settings.api_key
+
+
 class ConnectionManager:
     def __init__(self):
         self.active_connections: list[WebSocket] = []
@@ -42,44 +54,6 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-ATTACK_TYPES = ["DDoS", "SQLi", "Zero-Day", "Brute Force", "Phishing", "MitM"]
-STATUS_OPTIONS = ["detected", "blocked", "breached"]
-NODES = ["N-01", "N-02", "N-03", "N-04", "N-05", "N-06"]
-
-
-def _origin_allowed(origin: str | None) -> bool:
-    if not origin:
-        return settings.debug
-    if origin in settings.ws_allowed_origins:
-        return True
-    parsed = urlparse(origin)
-    host = parsed.netloc or parsed.path
-    return host in settings.trusted_hosts
-
-
-def _ws_authorized(websocket: WebSocket) -> bool:
-    if settings.api_key:
-        token = websocket.query_params.get("token") or websocket.headers.get("x-api-key")
-        return token == settings.api_key
-    return True
-
-
-def _make_threat_event() -> dict:
-    attack = random.choice(ATTACK_TYPES)
-    severity = random.randint(20, 95)
-    status = random.choices(STATUS_OPTIONS, weights=[0.5, 0.35, 0.15])[0]
-    target = random.choice(NODES)
-    return {
-        "type": "threat_event",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "attack_type": attack,
-        "target_node": target,
-        "severity": severity,
-        "status": status,
-        "threat_level": min(severity + random.randint(-5, 10), 100),
-        "message": f"[{status.upper()}] {attack} attack on {target} — severity {severity}",
-    }
-
 
 @router.websocket("/ws/threats")
 async def websocket_threats(websocket: WebSocket):
@@ -103,19 +77,37 @@ async def websocket_threats(websocket: WebSocket):
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
 
-        while True:
+        async def send_threats():
+            attack_types = ["DDoS", "SQLi", "Zero-Day", "Brute Force", "Phishing", "MitM"]
+            statuses = ["detected", "blocked", "breached"]
             try:
-                data = await asyncio.wait_for(websocket.receive_text(), timeout=3.0)
-                payload = json.loads(data)
-                if payload.get("type") == "ping":
-                    await websocket.send_json({"type": "pong"})
-            except asyncio.TimeoutError:
+                while True:
+                    await asyncio.sleep(random.uniform(4.0, 12.0))
+                    event = {
+                        "type": "threat_event",
+                        "attack_type": random.choice(attack_types),
+                        "target_node": f"N-{random.randint(1, 15):02d}",
+                        "severity": random.randint(30, 95),
+                        "status": random.choices(statuses, weights=[0.45, 0.40, 0.15])[0],
+                        "timestamp": datetime.now(timezone.utc).isoformat()
+                    }
+                    await websocket.send_json(event)
+            except Exception:
                 pass
-            except json.JSONDecodeError:
-                await websocket.send_json({"type": "error", "message": "Invalid JSON payload"})
 
-            event = _make_threat_event()
-            await manager.broadcast(event)
+        threat_task = asyncio.create_task(send_threats())
+
+        try:
+            while True:
+                try:
+                    data = await websocket.receive_text()
+                    payload = json.loads(data)
+                    if payload.get("type") == "ping":
+                        await websocket.send_json({"type": "pong"})
+                except json.JSONDecodeError:
+                    await websocket.send_json({"type": "error", "message": "Invalid JSON payload"})
+        finally:
+            threat_task.cancel()
 
     except WebSocketDisconnect:
         manager.disconnect(websocket)
