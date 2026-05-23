@@ -25,6 +25,7 @@ export default function Dashboard() {
   const attackerStrategies = useGameStore(state => state.attackerStrategies);
   const defenderStrategies = useGameStore(state => state.defenderStrategies);
   const payoffMatrix = useGameStore(state => state.payoffMatrix);
+  const setPayoffMatrix = useGameStore(state => state.setPayoffMatrix);
   const threatLevel = useGameStore(state => state.threatLevel);
   const defenseCoverage = useGameStore(state => state.defenseCoverage);
   const aiLogs = useGameStore(state => state.aiLogs);
@@ -54,9 +55,7 @@ export default function Dashboard() {
   const [defenseResult, setDefenseResult] = useState(null);
   const [paretoData, setParetoData] = useState([]);
   const [matrixSize, setMatrixSize] = useState(payoffMatrix.length || 4);
-  const [attackerMatrix, setAttackerMatrix] = useState(payoffMatrix);
-  const [defenderMatrix, setDefenderMatrix] = useState(payoffMatrix.map((row) => row.map((v) => -v)));
-  const [syncZeroSum, setSyncZeroSum] = useState(true);
+  const defenderMatrix = payoffMatrix.map((row) => row.map((v) => -v));
   const [presetName, setPresetName] = useState('scenario-1');
   const [savedPresets, setSavedPresets] = useState([]);
   const [selectedPreset, setSelectedPreset] = useState('');
@@ -79,11 +78,6 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (!syncZeroSum) return;
-    setDefenderMatrix(attackerMatrix.map((row) => row.map((v) => -v)));
-  }, [attackerMatrix, syncZeroSum]);
-
-  useEffect(() => {
     listPresets()
       .then((rows) => {
         const presets = rows || [];
@@ -94,9 +88,7 @@ export default function Dashboard() {
           setSelectedPreset(lastSelected);
           setPresetName(preset.name);
           setMatrixSize(preset.matrix_size);
-          setSyncZeroSum(Boolean(preset.sync_zero_sum));
-          setAttackerMatrix(resizeMatrix(preset.attacker_matrix || [], preset.matrix_size));
-          setDefenderMatrix(resizeMatrix(preset.defender_matrix || [], preset.matrix_size));
+          setPayoffMatrix(resizeMatrix(preset.attacker_matrix || [], preset.matrix_size));
         }
       })
       .catch(() => setSavedPresets([]));
@@ -110,10 +102,9 @@ export default function Dashboard() {
   const currentScenarioPayload = useCallback(() => ({
     name: presetName || `scenario-${Date.now()}`,
     matrix_size: matrixSize,
-    sync_zero_sum: syncZeroSum,
-    attacker_matrix: attackerMatrix,
-    defender_matrix: defenderMatrix,
-  }), [presetName, matrixSize, syncZeroSum, attackerMatrix, defenderMatrix]);
+    attacker_matrix: payoffMatrix,
+    defender_matrix: payoffMatrix.map((row) => row.map((v) => -v)),
+  }), [presetName, matrixSize, payoffMatrix]);
 
   const savePreset = useCallback(async () => {
     try {
@@ -133,9 +124,7 @@ export default function Dashboard() {
     setSelectedPreset(name);
     setPresetName(preset.name);
     setMatrixSize(preset.matrix_size);
-    setSyncZeroSum(Boolean(preset.sync_zero_sum));
-    setAttackerMatrix(resizeMatrix(preset.attacker_matrix || [], preset.matrix_size));
-    setDefenderMatrix(resizeMatrix(preset.defender_matrix || [], preset.matrix_size));
+    setPayoffMatrix(resizeMatrix(preset.attacker_matrix || [], preset.matrix_size));
     addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: `Loaded preset: ${preset.name}`, color: 'cyan' });
   }, [savedPresets, resizeMatrix, addAILog]);
 
@@ -186,14 +175,10 @@ export default function Dashboard() {
       const text = await file.text();
       const data = JSON.parse(text);
       const importedA = data.attacker_matrix || data.attackerMatrix || [];
-      const importedB = data.defender_matrix || data.defenderMatrix || [];
-      const importedSync = data.sync_zero_sum ?? data.syncZeroSum ?? true;
       const size = Number(data.matrix_size || data.matrixSize || (importedA.length ?? 4));
       setPresetName(data.name || 'imported-scenario');
       setMatrixSize(size);
-      setSyncZeroSum(Boolean(importedSync));
-      setAttackerMatrix(resizeMatrix(importedA, size));
-      setDefenderMatrix(resizeMatrix(importedB, size));
+      setPayoffMatrix(resizeMatrix(importedA, size));
       addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: `Imported scenario: ${data.name || 'unnamed'}`, color: 'green' });
     } catch {
       addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: 'Invalid scenario JSON file', color: 'red' });
@@ -263,15 +248,15 @@ export default function Dashboard() {
   }, [nashData, paretoData, presetName, matrixSize]);
 
   // Load Nash on mount / scenario change
-  const fetchNash = useCallback(async (attackerOverride = null, defenderOverride = null) => {
-    const currentA = attackerOverride || attackerMatrix;
-    const currentD = defenderOverride || defenderMatrix;
+  const fetchNash = useCallback(async (payoffOverride = null) => {
+    const currentPayoff = payoffOverride || payoffMatrix;
+    const currentDef = currentPayoff.map((row) => row.map((v) => -v));
     setLoading(l => ({ ...l, nash: true }));
     addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: 'Computing Nash Equilibrium via Python engine...', color: 'secondary' });
     try {
       const [data, pareto] = await Promise.all([
-        computeNash(currentA, currentD),
-        getPareto(currentA, currentD),
+        computeNash(currentPayoff, currentDef),
+        getPareto(currentPayoff, currentDef),
       ]);
       setNashData(data);
       setParetoData(pareto?.pareto_profiles || []);
@@ -294,15 +279,26 @@ export default function Dashboard() {
     } finally {
       setLoading(l => ({ ...l, nash: false }));
     }
-  }, [attackerMatrix, defenderMatrix, scenario, attackNames, defenseNames]);
+  }, [payoffMatrix, scenario, attackNames, defenseNames]);
 
   useEffect(() => { fetchNash(); }, []);
 
   const handleAttack = useCallback(async () => {
     setLoading(l => ({ ...l, attack: true }));
     setAttackResult(null);
-    simulateAttack(); // optimistic update
+    simulateAttack();
+
+    // Pick attack row with worst gain for defender (min sum → attacker wins when gain < 0) and subtract 1
+    const bestRow = payoffMatrix.reduce((best, row, i) => {
+      const sum = row.reduce((a, b) => a + b, 0);
+      return sum < best.sum ? { idx: i, sum } : best;
+    }, { idx: 0, sum: Infinity }).idx;
+    setPayoffMatrix(payoffMatrix.map((row, i) =>
+      i === bestRow ? row.map(v => v - 1) : row
+    ));
+
     addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: `Simulating ${scenario} attack on ${topology} topology...`, color: 'red' });
+    addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: `Attacker chose A${bestRow + 1} (worst for defender) → -1 applied`, color: 'amber' });
     try {
       const data = await simulateAttackAPI({ topology_type: topology, attack_type: 'DDoS' });
       setAttackResult(data);
@@ -313,13 +309,26 @@ export default function Dashboard() {
     } finally {
       setLoading(l => ({ ...l, attack: false }));
     }
-  }, [scenario, topology, threatLevel, simulateAttackAPI, simulateAttack]);
+  }, [scenario, topology, threatLevel, simulateAttackAPI, simulateAttack, payoffMatrix, setPayoffMatrix]);
 
   const handleDefense = useCallback(async () => {
     setLoading(l => ({ ...l, defense: true }));
     setDefenseResult(null);
-    deployDefense(); // optimistic update
+    deployDefense();
+
+    // Pick defense column with worst gain for defender (min sum) and add 1
+    const numCols = payoffMatrix[0].length;
+    let bestCol = 0, minSum = Infinity;
+    for (let c = 0; c < numCols; c++) {
+      const sum = payoffMatrix.reduce((s, row) => s + row[c], 0);
+      if (sum < minSum) { minSum = sum; bestCol = c; }
+    }
+    setPayoffMatrix(payoffMatrix.map(row =>
+      row.map((v, c) => c === bestCol ? v + 1 : v)
+    ));
+
     addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: `Deploying ${aiMode === 'rl' ? 'RL-adaptive' : 'static'} defense on ${topology} topology...`, color: 'green' });
+    addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: `Defender chose D${bestCol + 1} (worst gain) → +1 applied`, color: 'cyan' });
     try {
       const data = await deployDefenseAPI({ topology_type: topology });
       setDefenseResult(data);
@@ -329,7 +338,7 @@ export default function Dashboard() {
     } finally {
       setLoading(l => ({ ...l, defense: false }));
     }
-  }, [aiMode, topology, deployDefenseAPI, deployDefense]);
+  }, [aiMode, topology, deployDefenseAPI, deployDefense, payoffMatrix, setPayoffMatrix]);
 
   const gameValue = nashData?.attacker_utility ?? 0;
 
@@ -450,11 +459,11 @@ export default function Dashboard() {
               <thead>
                 <tr>
                   <th style={mth('var(--text-muted)')}></th>
-                  {(attackerMatrix[0] || []).map((_, i) => <th key={`D${i+1}`} style={mth('var(--accent-cyan)')}>{`D${i+1}`}</th>)}
+                   {(payoffMatrix[0] || []).map((_, i) => <th key={`D${i+1}`} style={mth('var(--accent-cyan)')}>{`D${i+1}`}</th>)}
                 </tr>
               </thead>
               <tbody>
-                {attackerMatrix.map((row, r) => (
+                {payoffMatrix.map((row, r) => (
                   <tr key={r}>
                     <td style={mtd}><span style={{ color:'var(--accent-red)' }}>A{r+1}</span></td>
                     {row.map((val, c) => {
@@ -464,7 +473,7 @@ export default function Dashboard() {
                           background: isNE ? 'rgba(255,214,10,0.12)' : 'transparent',
                           border: isNE ? '1px solid rgba(255,214,10,0.35)' : '1px solid transparent',
                           borderRadius: 4 }}>
-                          <span style={{ color: val > 0 ? 'var(--accent-red)' : val < 0 ? 'var(--accent-cyan)' : 'var(--text-muted)', fontWeight: isNE ? 700 : 400 }}>
+                          <span style={{ color: val > 0 ? 'var(--accent-cyan)' : val < 0 ? 'var(--accent-red)' : 'var(--text-muted)', fontWeight: isNE ? 700 : 400 }}>
                             {val > 0 ? `+${val}` : val}
                           </span>
                         </td>
@@ -478,7 +487,7 @@ export default function Dashboard() {
           {nashData && (
             <div style={{ marginTop:'0.5rem', padding:'0.4rem 0.6rem', background:'rgba(255,214,10,0.05)', border:'1px solid rgba(255,214,10,0.2)', borderRadius:5 }}>
               <span className="font-mono" style={{ fontSize:'0.58rem', color:'var(--accent-amber)' }}>
-                Game Value v* = {gameValue.toFixed(4)} · {gameValue > 0 ? 'Attacker advantage' : 'Defender advantage'}
+                Game Value v* = {gameValue.toFixed(4)} · {gameValue > 0 ? 'Defender advantage' : 'Attacker advantage'}
               </span>
             </div>
           )}
@@ -496,15 +505,15 @@ export default function Dashboard() {
           <div style={{ flex:1, minHeight:220 }}>
             {convergenceData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={convergenceData} margin={{ top:5, right:20, left:-25, bottom:5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" />
+                <LineChart data={convergenceData} margin={{ top:5, right:15, left:-20, bottom:5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
                   <XAxis dataKey="iteration" stroke="var(--text-muted)" tick={{ fontSize:9, fill:'var(--text-muted)' }} />
-                  <YAxis stroke="var(--text-muted)" tick={{ fontSize:9, fill:'var(--text-muted)' }} />
-                  <Tooltip contentStyle={{ background:'rgba(10,18,35,0.9)', backdropFilter:'blur(10px)', border:'1px solid rgba(0,240,255,0.15)', borderRadius:8, fontFamily:'var(--font-mono)', fontSize:11, boxShadow:'0 10px 20px rgba(0,0,0,0.5)' }} />
-                  <ReferenceLine y={gameValue} stroke="var(--accent-amber)" strokeDasharray="4 3" strokeWidth={1.5}
-                    label={{ value:`v*=${gameValue.toFixed(2)}`, position:'right', fill:'var(--accent-amber)', fontSize:9 }} />
-                  <Line type="monotone" dataKey="attacker" stroke="var(--accent-red)" strokeWidth={2} dot={false} name="Attacker" />
-                  <Line type="monotone" dataKey="defender" stroke="var(--accent-cyan)" strokeWidth={2} dot={false} name="Defender" />
+                  <YAxis stroke="var(--text-muted)" tick={{ fontSize:9, fill:'var(--text-muted)' }} domain={[0, 10]} />
+                  <Tooltip contentStyle={{ background:'#0a0e17', border:'1px solid rgba(0,240,255,0.2)', borderRadius:4, fontFamily:'var(--font-mono)', fontSize:11 }} />
+                  <ReferenceLine y={Math.abs(gameValue)} stroke="var(--accent-amber)" strokeDasharray="4 3" strokeWidth={1}
+                    label={{ value:'v*', position:'right', fill:'var(--accent-amber)', fontSize:9 }} />
+                  <Line type="monotone" dataKey="attacker" stroke="#00f0ff" strokeWidth={2} dot={false} name="Attacker" />
+                  <Line type="monotone" dataKey="defender" stroke="#ff3b30" strokeWidth={2} dot={false} name="Defender" />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
@@ -601,7 +610,7 @@ export default function Dashboard() {
             <div className="panel-title"><Cpu size={14} />GAME STATS</div>
           </div>
           <div style={{ display:'flex', flexDirection:'column', gap:'0.4rem' }}>
-            <StatRow label="GAME TYPE" value={`General-Sum ${attackerMatrix.length}×${(attackerMatrix[0] || []).length}`} color="var(--text-secondary)" />
+            <StatRow label="GAME TYPE" value={`Zero-Sum ${payoffMatrix.length}×${(payoffMatrix[0] || []).length}`} color="var(--text-secondary)" />
             <StatRow label="ALGORITHM" value="Support Enum." color="var(--accent-cyan)" />
             <StatRow label="GAME VALUE v*" value={nashData ? gameValue.toFixed(4) : '—'} color="var(--accent-amber)" />
             <StatRow label="ATT UTILITY" value={nashData ? nashData.attacker_utility.toFixed(3) : '—'} color="var(--accent-red)" />
@@ -631,8 +640,6 @@ export default function Dashboard() {
             onImportScenario={onImportScenario}
           />
           <ExportPanel
-            syncZeroSum={syncZeroSum}
-            setSyncZeroSum={setSyncZeroSum}
             exportResultsCsv={exportResultsCsv}
             exportResultsPdf={exportResultsPdf}
           />
@@ -640,14 +647,11 @@ export default function Dashboard() {
             matrixSize={matrixSize}
             setMatrixSize={setMatrixSize}
             resizeMatrix={resizeMatrix}
-            setAttackerMatrix={setAttackerMatrix}
-            setDefenderMatrix={setDefenderMatrix}
             fetchNash={fetchNash}
             loading={loading}
-            attackerMatrix={attackerMatrix}
-            defenderMatrix={defenderMatrix}
+            payoffMatrix={payoffMatrix}
             updateCell={updateCell}
-            syncZeroSum={syncZeroSum}
+            setPayoffMatrix={setPayoffMatrix}
           />
         </div>
 

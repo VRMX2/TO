@@ -3,6 +3,7 @@ import AppLayout from '../components/ui/AppLayout';
 import PageHero from '../components/ui/PageHero';
 import { Zap, Play, Square, RefreshCw, ChevronRight, Brain } from 'lucide-react';
 import { useGameAPI } from '../hooks/useGameAPI';
+import { useGameStore } from '../store/gameStore';
 import { useI18n } from '../i18n/I18nProvider';
 import { apiHeaders } from '../lib/apiClient';
 import {
@@ -24,13 +25,6 @@ const DEFENSE_STRATEGIES = [
   { id: 'D3', icon: '⬡', color: '#00f0ff', effect: 2 },
   { id: 'D4', icon: '⬡', color: '#00b4c8', effect: 3 },
 ];
-const PAYOFF = [
-  [5, 2, -1, 4],
-  [4, 6, 8, 3],
-  [-3, 1, 7, 2],
-  [2, -2, 5, 0],
-];
-
 
 
 function sampleStrategy(probs) {
@@ -195,6 +189,8 @@ export default function Simulation() {
   
   const [nashData, setNashData] = useState(null);
   const { computeNash } = useGameAPI();
+  const setMainPayoff = useGameStore(state => state.setPayoffMatrix);
+  const [payoffMatrix, setPayoffMatrix] = useState([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]);
 
   const addLog = useCallback((text, color = 'secondary') => {
     const time = new Date().toLocaleTimeString('en-US', { hour12: false });
@@ -202,7 +198,7 @@ export default function Simulation() {
   }, []);
 
   useEffect(() => {
-    computeNash(PAYOFF).then(data => {
+    computeNash(payoffMatrix).then(data => {
       setNashData({
         p: data.attacker_strategy,
         q: data.defender_strategy,
@@ -214,7 +210,7 @@ export default function Simulation() {
       setNashData({ p: [0.25, 0.25, 0.25, 0.25], q: [0.25, 0.25, 0.25, 0.25], v: 0.0 });
       addLog('Failed to connect to backend engine, using fallback distribution', 'red');
     });
-  }, [addLog, computeNash]);
+  }, [addLog, computeNash, payoffMatrix]);
 
   const nashP = nashData?.p || [0.25, 0.25, 0.25, 0.25];
   const nashQ = nashData?.q || [0.25, 0.25, 0.25, 0.25];
@@ -245,7 +241,11 @@ export default function Simulation() {
   const runRound = useCallback((roundNum, hist) => {
     const attIdx = mode === 'mixed' ? sampleStrategy(nashP) : mode === 'manual' ? manualAtt : Math.floor(Math.random() * 4);
     const defIdx = mode === 'mixed' ? sampleStrategy(nashQ) : mode === 'manual' ? manualDef : Math.floor(Math.random() * 4);
-    const payoff = PAYOFF[attIdx][defIdx];
+    const payoff = payoffMatrix[attIdx][defIdx];
+    setPayoffMatrix(prev => prev.map((row, r) =>
+      r === attIdx && payoff < 0 ? row.map(v => v - 1) :
+      row.map((v, c) => c === defIdx && payoff > 0 ? v + 1 : v)
+    ));
     const attS = ATTACK_STRATEGIES[attIdx];
     const defS = DEFENSE_STRATEGIES[defIdx];
     const attName = getAttackNameByIndex(attIdx);
@@ -319,7 +319,7 @@ export default function Simulation() {
     }
 
     return newHist;
-  }, [mode, nashP, nashQ, nashV, manualAtt, manualDef, animatePackets, addLog, threatLevel, coverage, attackNames, defenseNames]);
+  }, [mode, nashP, nashQ, nashV, manualAtt, manualDef, animatePackets, addLog, threatLevel, coverage, attackNames, defenseNames, payoffMatrix, setPayoffMatrix]);
 
   useEffect(() => {
     if (!running) { clearTimeout(timerRef.current); return; }
@@ -355,6 +355,14 @@ export default function Simulation() {
   };
 
   const handleManualRound = () => { if (!running) { const h = runRound(round + 1, history); setRound(r => r + 1); setHistory(h); } };
+
+  const generateMatrix = () => {
+    const m = Array.from({ length: 4 }, () =>
+      Array.from({ length: 4 }, () => Math.floor(Math.random() * 17) - 5)
+    );
+    setPayoffMatrix(m);
+    addLog('New payoff matrix generated — Nash will recompute', 'amber');
+  };
   const progress = (round / maxRounds) * 100;
 
   return (
@@ -375,6 +383,11 @@ export default function Simulation() {
               </button>
             ))}
           </div>
+
+          <button onClick={generateMatrix} disabled={running}
+            style={{ ...pillBtn, background: 'rgba(167,139,250,0.1)', color: 'var(--accent-cyan)', border: '1px solid rgba(0,240,255,0.25)' }}>
+            <RefreshCw size={11} /> MATRIX
+          </button>
 
           {/* Speed */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -473,6 +486,44 @@ export default function Simulation() {
                 <Meter label={t('simulation.coverageMeter')} value={coverage} color="var(--accent-cyan)" />
               </div>
             </Panel>
+
+            {/* Payoff Matrix */}
+            <Panel color="cyan" title="PAYOFF MATRIX">
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'0.62rem', fontFamily:'var(--font-mono)' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ padding:'3px 6px', color:'var(--text-muted)', borderBottom:'1px solid rgba(255,255,255,0.06)', textAlign:'left', fontSize:'0.5rem', lineHeight:1.3 }}>ATT<br />↓<br />DEF →</th>
+                      {payoffMatrix[0].map((_, i) => (
+                        <th key={i} style={{ padding:'3px 6px', color:'var(--accent-cyan)', borderBottom:'1px solid rgba(255,255,255,0.06)', textAlign:'center', fontSize:'0.55rem', lineHeight:1.3 }}>D{i+1}<br /><span style={{ fontSize:'0.45rem', fontWeight:400, color:'var(--text-muted)' }}>{getDefenseNameByIndex(i)}</span></th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payoffMatrix.map((row, r) => (
+                      <tr key={r}>
+                        <td style={{ padding:'3px 6px', color:'var(--accent-red)', borderBottom:'1px solid rgba(255,255,255,0.04)', fontSize:'0.55rem', lineHeight:1.3 }}>A{r+1}<br /><span style={{ fontSize:'0.45rem', fontWeight:400, color:'var(--text-muted)' }}>{getAttackNameByIndex(r)}</span></td>
+                        {row.map((val, c) => (
+                          <td key={c} style={{ padding:'3px 6px', textAlign:'center', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+                            <span style={{ color: val > 0 ? 'var(--accent-cyan)' : val < 0 ? 'var(--accent-red)' : 'var(--text-muted)' }}>{val > 0 ? `+${val}` : val}</span>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:'0.5rem', fontSize:'0.52rem' }}>
+                <div style={{ display:'flex', gap:'0.75rem' }}>
+                  <span style={{ color:'var(--accent-cyan)' }}>● Defender adv.</span>
+                  <span style={{ color:'var(--accent-red)' }}>● Attacker adv.</span>
+                </div>
+                <button onClick={() => { setMainPayoff(payoffMatrix); addLog('Payoff matrix copied to Dashboard / Analysis / Report', 'green'); }}
+                  style={{ background:'rgba(0,240,255,0.1)', border:'1px solid rgba(0,240,255,0.3)', color:'var(--accent-cyan)', borderRadius:4, padding:'2px 8px', cursor:'pointer', fontFamily:'var(--font-mono)', fontSize:'0.52rem' }}>
+                  Copy to Main
+                </button>
+              </div>
+            </Panel>
           </div>
 
           {/* CENTER: Chart + Strategy probs */}
@@ -486,8 +537,8 @@ export default function Simulation() {
                     <YAxis stroke="var(--text-muted)" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} domain={[0, 10]} />
                     <Tooltip contentStyle={{ background: '#0a0e17', border: '1px solid rgba(0,240,255,0.2)', borderRadius: 4, fontFamily: 'var(--font-mono)', fontSize: 11 }} />
                     <ReferenceLine y={Math.abs(nashV)} stroke="var(--accent-amber)" strokeDasharray="4 3" strokeWidth={1} label={{ value: 'v*', position: 'right', fill: 'var(--accent-amber)', fontSize: 9 }} />
-                    <Line type="monotone" dataKey="attacker" stroke="#ff3b30" strokeWidth={2} dot={false} name="Attacker" />
-                    <Line type="monotone" dataKey="defender" stroke="#00f0ff" strokeWidth={2} dot={false} name="Defender" />
+                    <Line type="monotone" dataKey="attacker" stroke="#00f0ff" strokeWidth={2} dot={false} name="Attacker" />
+                    <Line type="monotone" dataKey="defender" stroke="#ff3b30" strokeWidth={2} dot={false} name="Defender" />
                   </LineChart>
                 </ResponsiveContainer>
               </div>

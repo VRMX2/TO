@@ -64,13 +64,13 @@ export default function PayoffMatrix() {
           ))}
         </div>
 
-        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', fontSize: '0.7rem' }} className="font-mono text-secondary">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <div style={{ width: '8px', height: '8px', background: 'var(--accent-cyan)' }}></div> Att. gain
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-            <div style={{ width: '8px', height: '8px', background: 'var(--accent-red)' }}></div> Att. loss
-          </div>
+          <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', fontSize: '0.7rem' }} className="font-mono text-secondary">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <div style={{ width: '8px', height: '8px', background: 'var(--accent-cyan)' }}></div> Defender adv.
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <div style={{ width: '8px', height: '8px', background: 'var(--accent-red)' }}></div> Attacker adv.
+            </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             <div style={{ width: '8px', height: '8px', border: '1px solid var(--accent-amber)' }}></div> Nash eq.
           </div>

@@ -4,14 +4,11 @@ export default function MatrixEditor({
   matrixSize,
   setMatrixSize,
   resizeMatrix,
-  setAttackerMatrix,
-  setDefenderMatrix,
   fetchNash,
   loading,
-  attackerMatrix,
-  defenderMatrix,
+  payoffMatrix,
   updateCell,
-  syncZeroSum,
+  setPayoffMatrix,
 }) {
   const { t } = useI18n();
   return (
@@ -22,72 +19,40 @@ export default function MatrixEditor({
           value={matrixSize}
           onChange={(e) => {
             const nextSize = Number(e.target.value);
-            const nextAttacker = resizeMatrix(attackerMatrix, nextSize);
-            const nextDefenderBase = resizeMatrix(defenderMatrix, nextSize);
-            const nextDefender = syncZeroSum
-              ? nextAttacker.map((row) => row.map((v) => -v))
-              : nextDefenderBase;
+            const nextMatrix = resizeMatrix(payoffMatrix, nextSize);
             setMatrixSize(nextSize);
-            setAttackerMatrix(nextAttacker);
-            setDefenderMatrix(nextDefender);
-            // Recompute immediately so dashboard tables follow new dimensions.
-            fetchNash(nextAttacker, nextDefender);
+            setPayoffMatrix(nextMatrix);
+            fetchNash();
           }}
           style={{ background: 'var(--bg-base)', border: '1px solid rgba(0,240,255,0.2)', color: 'var(--text-primary)', padding: '4px 8px', borderRadius: 4, fontFamily: 'var(--font-mono)', fontSize: '0.62rem', outline: 'none', cursor: 'pointer' }}
         >
           {[2, 3, 4, 5, 6].map((s) => <option key={s} value={s}>{`${s}x${s}`}</option>)}
         </select>
-        <button className="btn btn-cyan" onClick={() => fetchNash(attackerMatrix, defenderMatrix)} disabled={loading.nash}>
+        <button className="btn btn-cyan" onClick={fetchNash} disabled={loading.nash}>
           {t('matrix.recompute')}
         </button>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem' }}>
-        <div>
-          <div className="font-mono" style={{ fontSize: '0.56rem', color: 'var(--accent-red)', marginBottom: '0.25rem' }}>{t('matrix.attackerA')}</div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ borderCollapse: 'collapse' }}>
-              <tbody>
-                {attackerMatrix.map((row, r) => (
-                  <tr key={`a-row-${r}`}>
-                    {row.map((v, c) => (
-                      <td key={`a-cell-${r}-${c}`} style={{ padding: '2px' }}>
-                        <input
-                          type="number"
-                          value={v}
-                          onChange={(e) => updateCell(setAttackerMatrix, attackerMatrix, r, c, e.target.value)}
-                          style={{ width: 44, background: 'var(--bg-base)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-primary)', borderRadius: 4, padding: '2px 4px', fontFamily: 'var(--font-mono)', fontSize: '0.58rem' }}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div>
-          <div className="font-mono" style={{ fontSize: '0.56rem', color: 'var(--accent-cyan)', marginBottom: '0.25rem' }}>{t('matrix.defenderB')}</div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ borderCollapse: 'collapse' }}>
-              <tbody>
-                {defenderMatrix.map((row, r) => (
-                  <tr key={`d-row-${r}`}>
-                    {row.map((v, c) => (
-                      <td key={`d-cell-${r}-${c}`} style={{ padding: '2px' }}>
-                        <input
-                          type="number"
-                          value={v}
-                          disabled={syncZeroSum}
-                          onChange={(e) => updateCell(setDefenderMatrix, defenderMatrix, r, c, e.target.value)}
-                          style={{ width: 44, background: 'var(--bg-base)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-primary)', borderRadius: 4, padding: '2px 4px', fontFamily: 'var(--font-mono)', fontSize: '0.58rem' }}
-                        />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      <div>
+        <div className="font-mono" style={{ fontSize: '0.56rem', color: 'var(--accent-red)', marginBottom: '0.25rem' }}>{t('matrix.payoff')}</div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ borderCollapse: 'collapse' }}>
+            <tbody>
+              {payoffMatrix.map((row, r) => (
+                <tr key={`a-row-${r}`}>
+                  {row.map((v, c) => (
+                    <td key={`a-cell-${r}-${c}`} style={{ padding: '2px' }}>
+                      <input
+                        type="number"
+                        value={v}
+                        onChange={(e) => updateCell(setPayoffMatrix, payoffMatrix, r, c, e.target.value)}
+                        style={{ width: 44, background: 'var(--bg-base)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-primary)', borderRadius: 4, padding: '2px 4px', fontFamily: 'var(--font-mono)', fontSize: '0.58rem' }}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </>

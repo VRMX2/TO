@@ -55,9 +55,7 @@ export const translations = {
     matrix: {
       size: 'Size',
       recompute: 'Recompute',
-      attackerA: 'Attacker A',
-      defenderB: 'Defender B',
-      autoSync: 'Auto-sync B = -A',
+      payoff: 'PAYOFF MATRIX',
       exportCsv: 'Export CSV',
       exportPdf: 'Export PDF',
     },
@@ -257,9 +255,7 @@ export const translations = {
     matrix: {
       size: 'Taille',
       recompute: 'Recalculer',
-      attackerA: 'Attaquant A',
-      defenderB: 'Defenseur B',
-      autoSync: 'Auto-sync B = -A',
+      payoff: 'MATRICE DES GAINS',
       exportCsv: 'Exporter CSV',
       exportPdf: 'Exporter PDF',
     },
@@ -459,9 +455,7 @@ export const translations = {
     matrix: {
       size: 'الحجم',
       recompute: 'اعادة الحساب',
-      attackerA: 'المهاجم A',
-      defenderB: 'المدافع B',
-      autoSync: 'مزامنة تلقائية B = -A',
+      payoff: 'مصفوفة المكاسب',
       exportCsv: 'تصدير CSV',
       exportPdf: 'تصدير PDF',
     },

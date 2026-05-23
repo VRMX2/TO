@@ -8,10 +8,10 @@ export default function About() {
   const teamMembers = [
     { name: 'GRISSI LAHCEN', idx: 0 },
     { name: 'BERRAG RAYANE ABDESSALEM', idx: 1 },
-    { name: 'HABBA EL RAYANE', idx: 2 },
-    { name: 'AKSOUH ABDERRAOUF', idx: 3 },
-    { name: 'BERSALI HAMZA', idx: 4 },
-    { name: 'CHABRI ABDELMALEK', idx: 5 },
+    { name: 'CHABRI ABDELMALEK', idx: 2 },
+    { name: 'BERSALI HAMZA', idx: 3 },
+    { name: 'HABBA EL RAYANE', idx: 4 },
+    { name: 'AKSOUH ABDERRAOUF', idx: 5 },
   ];
 
   const techStack = [
@@ -49,7 +49,7 @@ export default function About() {
             {/* Shimmer gradient */}
             <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(255,255,255,0.04), transparent)', pointerEvents: 'none' }} />
             {/* Corner accents */}
-            {[['0px','0px','10px 0 0 0'],['0px','auto','0 10px 0 0'],['auto','0px','0 0 0 10px'],['auto','auto','0 0 10px 0']].map(([t2,l2,r2],idx) => (
+            {[['0px', '0px', '10px 0 0 0'], ['0px', 'auto', '0 10px 0 0'], ['auto', '0px', '0 0 0 10px'], ['auto', 'auto', '0 0 10px 0']].map(([t2, l2, r2], idx) => (
               <div key={idx} style={{
                 position: 'absolute',
                 top: t2 === 'auto' ? 'auto' : 12, left: l2 === 'auto' ? 'auto' : 12,

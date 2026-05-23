@@ -84,6 +84,8 @@ export const useGameStore = create((set) => ({
 
   setThreatLevel: (level) => set((state) => ({ threatLevel: typeof level === 'function' ? level(state.threatLevel) : level })),
 
+  setPayoffMatrix: (matrix) => set({ payoffMatrix: matrix }),
+
   updateNashResults: ({ nashData, paretoData }) => set((state) => {
     // Merge backend data if available
     return {

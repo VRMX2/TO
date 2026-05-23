@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useMemo } from 'react';
 import AppLayout from '../components/ui/AppLayout';
 import PageHero from '../components/ui/PageHero';
 import { useI18n } from '../i18n/I18nProvider';
+import { useGameStore } from '../store/gameStore';
 import { apiHeaders } from '../lib/apiClient';
 import {
   FileText, Brain, Download, RefreshCw, CheckCircle,
@@ -12,12 +13,6 @@ import {
 /* ══════════════════════════════════════════════════
    GAME-THEORY CONSTANTS (mirrors Simulation.jsx)
 ══════════════════════════════════════════════════ */
-const PAYOFF = [
-  [5, 2, -1, 4],
-  [4, 6, 8, 3],
-  [-3, 1, 7, 2],
-  [2, -2, 5, 0],
-];
 const DEFENSE_STRATEGIES = ['D1', 'D2', 'D3', 'D4'];
 
 function solveMixedNash(matrix) {
@@ -86,6 +81,7 @@ export default function Report() {
   const { t } = useI18n();
   const attackNames = t('common.attackStrategies') || [];
   const defenseNames = t('common.defenseStrategies') || [];
+  const PAYOFF = useGameStore(state => state.payoffMatrix);
   const [scenario, setScenario] = useState('Standard 4×4 Zero-Sum');
   const [rounds, setRounds] = useState(50);
   const [generating, setGenerating] = useState(false);
@@ -365,7 +361,7 @@ export default function Report() {
                         <td key={c} style={{ ...TD, textAlign: 'center', background: isMax && isMin ? 'rgba(255,214,10,0.12)' : 'transparent' }}>
                           <span className="font-mono" style={{
                             fontSize: '0.75rem',
-                            color: val > 0 ? 'var(--accent-red)' : val < 0 ? 'var(--accent-cyan)' : 'var(--text-muted)',
+                            color: val > 0 ? 'var(--accent-cyan)' : val < 0 ? 'var(--accent-red)' : 'var(--text-muted)',
                             fontWeight: isMax && isMin ? 700 : 400,
                           }}>
                             {val > 0 ? `+${val}` : val}

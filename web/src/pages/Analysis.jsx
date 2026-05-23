@@ -3,6 +3,7 @@ import AppLayout from '../components/ui/AppLayout';
 import PageHero from '../components/ui/PageHero';
 import { Target, RefreshCw, ChevronDown, ChevronUp, Info } from 'lucide-react';
 import { useI18n } from '../i18n/I18nProvider';
+import { useGameStore } from '../store/gameStore';
 
 /* ─── Pure Nash Equilibrium (saddle point) ─── */
 function findPureNash(matrix) {
@@ -64,13 +65,6 @@ function findPareto(matrix) {
   return profiles;
 }
 
-const DEFAULT_MATRIX = [
-  [5, 6, 7, 8],
-  [4, 6, 8, 3],
-  [-3, 1, 7, 2],
-  [2, -2, 5, 0],
-];
-
 const fmt = v => v > 0 ? `+${v}` : `${v}`;
 const pct = v => (v * 100).toFixed(1) + '%';
 
@@ -78,7 +72,8 @@ export default function Analysis() {
   const { t } = useI18n();
   const attackerNames = t('common.attackStrategies') || [];
   const defenderNames = t('common.defenseStrategies') || [];
-  const [matrix, setMatrix] = useState(DEFAULT_MATRIX.map(r => [...r]));
+  const matrix = useGameStore(state => state.payoffMatrix);
+  const setMatrix = useGameStore(state => state.setPayoffMatrix);
   const [editCell, setEditCell] = useState(null);
   const [editVal, setEditVal] = useState('');
   const [showInfo, setShowInfo] = useState({ pure: true, mixed: true, pareto: true });
@@ -122,10 +117,13 @@ export default function Analysis() {
     setEditCell(null);
   };
 
-  const randomize = () => setMatrix(Array.from({ length: 4 }, () =>
-    Array.from({ length: 4 }, () => Math.floor(Math.random() * 17) - 5)));
+  const randomize = () => setMatrix(Array.from({ length: matrix.length }, () =>
+    Array.from({ length: matrix[0].length }, () => Math.floor(Math.random() * 17) - 5)));
 
-  const reset = () => setMatrix(DEFAULT_MATRIX.map(r => [...r]));
+  const reset = () => setMatrix(matrix.map((row, r) => row.map((_, c) => {
+    const defaults = [[5,2,-1,4],[4,6,8,3],[-3,1,7,2],[2,-2,5,0]];
+    return (defaults[r] && defaults[r][c] != null) ? defaults[r][c] : 0;
+  })));
   const toggle = k => setShowInfo(s => ({ ...s, [k]: !s[k] }));
 
   return (
