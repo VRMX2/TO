@@ -6,7 +6,7 @@ import { useGameAPI } from '../hooks/useGameAPI';
 import { useGameStore } from '../store/gameStore';
 import { useI18n } from '../i18n/I18nProvider';
 import { apiHeaders } from '../lib/apiClient';
-import BandwidthGame from '../components/BandwidthGame';
+
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer
 } from 'recharts';
@@ -722,8 +722,6 @@ export default function Simulation() {
           </div>
         </div>
       </div>
-
-      <BandwidthGame />
 
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}`}</style>
     </AppLayout>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import Header from '../components/Header';
 import MatrixEditor from '../components/dashboard/MatrixEditor';
 import PresetManager from '../components/dashboard/PresetManager';
@@ -35,7 +35,6 @@ export default function Dashboard() {
   const {
     computeNash,
     getPareto,
-    solveLP,
     fictitiousPlay,
     computeRegret,
     listPresets,
@@ -270,7 +269,9 @@ export default function Dashboard() {
   // Load Nash on mount / scenario change
   const fetchNash = useCallback(async (payoffOverride = null) => {
     const currentPayoff = payoffOverride || payoffMatrix;
-    const currentDef = currentPayoff.map((row) => row.map((v) => -v));
+    const currentDef = payoffOverride
+      ? currentPayoff.map((row) => row.map((v) => -v))
+      : defenderMatrix;
     setLoading(l => ({ ...l, nash: true }));
     addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: 'Computing Nash Equilibrium via Python engine...', color: 'secondary' });
     try {
@@ -302,7 +303,15 @@ export default function Dashboard() {
     } finally {
       setLoading(l => ({ ...l, nash: false }));
     }
-  }, [payoffMatrix, scenario, attackNames, defenseNames]);
+  }, [payoffMatrix, scenario, attackNames, defenseNames, defenderMatrix]);
+
+  // Auto-recompute Nash when payoff matrix changes (debounced)
+  const nashTimerRef = useRef(null);
+  useEffect(() => {
+    if (nashTimerRef.current) clearTimeout(nashTimerRef.current);
+    nashTimerRef.current = setTimeout(() => { fetchNash(); }, 400);
+    return () => { if (nashTimerRef.current) clearTimeout(nashTimerRef.current); };
+  }, [payoffMatrix, gameMode, defenderGeneralMatrix]);
 
   useEffect(() => { fetchNash(); }, []);
 
@@ -364,6 +373,26 @@ export default function Dashboard() {
   }, [aiMode, topology, deployDefenseAPI, deployDefense, payoffMatrix, setPayoffMatrix]);
 
   const gameValue = nashData?.attacker_utility ?? 0;
+
+  // Determine which topology nodes to highlight based on Nash strategies
+  const nashHighlightNodes = useMemo(() => {
+    if (!nashData) return [];
+    const topoNodes = {
+      star: ['Core', 'FW', 'Web', 'App', 'DB', 'EP1', 'EP2'],
+      mesh: ['N1', 'N2', 'N3', 'N4', 'N5', 'N6'],
+      ring: ['R1', 'R2', 'R3', 'R4', 'SW', 'EP'],
+      tree: ['Root', 'L1', 'L2', 'FW', 'EP1', 'EP2', 'EP3'],
+    };
+    const ids = topoNodes[topology] || topoNodes.star;
+    const hl = [];
+    (nashData.attacker_strategy || []).forEach((p, i) => {
+      if (p > 0.15 && ids[i]) hl.push(ids[i]);
+    });
+    (nashData.defender_strategy || []).forEach((p, i) => {
+      if (p > 0.15 && ids[ids.length - 1 - i]) hl.push(ids[ids.length - 1 - i]);
+    });
+    return hl;
+  }, [nashData, topology]);
 
   const metrics = [
     {
@@ -526,15 +555,23 @@ export default function Dashboard() {
             <span style={{ fontSize:'0.6rem', fontFamily:'var(--font-mono)', color:'var(--text-muted)' }}>{['star','Star Network','mesh','Mesh Network','ring','Ring Network','tree','Tree Network'][['star','mesh','ring','tree'].indexOf(topology) * 2 + 1]}</span>
           </div>
           <div style={{ flex:1, minHeight:260 }}>
-            <TopologyGraph topology={topology} />
+            <TopologyGraph topology={topology} highlightNodes={nashHighlightNodes} />
           </div>
           {nashData && (
             <div style={{ padding:'0.3rem 0.6rem', borderTop:'1px solid rgba(255,255,255,0.05)', marginTop:'0.3rem' }}>
               <span className="font-mono" style={{ fontSize:'0.5rem', color:'var(--accent-amber)' }}>
                 ★ v* = {gameValue.toFixed(3)} · {nashData.equilibria?.length || 0} equilibria
+                {nashHighlightNodes.length > 0 && <span style={{ color:'var(--text-muted)', marginLeft:'0.5rem' }}>
+                  · Nash nodes: {nashHighlightNodes.join(', ')}
+                </span>}
               </span>
             </div>
           )}
+          <div style={{ padding:'0.25rem 0.6rem', borderTop:'1px solid rgba(255,255,255,0.04)', display:'flex', gap:'0.4rem', flexWrap:'wrap' }}>
+            <span className="font-mono" style={{ fontSize:'0.45rem', color:'var(--text-muted)' }}>
+              Adjust payoffs in the <span style={{ color:'var(--accent-cyan)' }}>MATRIX EDITOR</span> (right panel) to change game outcomes
+            </span>
+          </div>
         </div>
 
         {/* Status Cards Row */}
@@ -632,10 +669,13 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="panel" style={{ flexShrink:0 }}>
+        <div className="panel" style={{ flexShrink:0, borderColor: 'rgba(0,240,255,0.25)', borderWidth: 1 }}>
           <div className="panel-header">
             <div className="panel-title"><Cpu size={14} />MATRIX EDITOR</div>
-            <span style={{ fontSize:'0.55rem', fontFamily:'var(--font-mono)', color:'var(--text-muted)' }}>{t('dashboard.twoPlayers')}</span>
+            <span style={{ fontSize:'0.55rem', fontFamily:'var(--font-mono)', color:'var(--accent-cyan)' }}>✎ EDIT PAYOFFS</span>
+          </div>
+          <div className="font-mono" style={{ fontSize:'0.5rem', color:'var(--text-muted)', padding:'0 0.6rem 0.4rem' }}>
+            Modify game parameters — cells auto-recompute Nash
           </div>
           <PresetManager
             presetName={presetName}
@@ -728,29 +768,6 @@ export default function Dashboard() {
               </div>
             </div>
           )}
-
-          {/* LP Solver */}
-          <div className="panel">
-            <div className="panel-header">
-              <div className="panel-title"><Cpu size={14} />LP CENTRALIZED OPT.</div>
-            </div>
-            {nashData ? (
-              <div style={{ textAlign:'center', padding:'0.4rem' }}>
-                <button className="btn btn-cyan" onClick={async () => {
-                  try {
-                    const res = await solveLP(payoffMatrix);
-                    addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: `LP solve: v* = ${res.game_value} · Att: [${res.optimal_attacker_strategy.map(p => (p * 100).toFixed(0) + '%').join(', ')}] · Def: [${res.optimal_defender_strategy.map(p => (p * 100).toFixed(0) + '%').join(', ')}]`, color: 'cyan' });
-                  } catch { addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: 'LP solve failed', color: 'red' }); }
-                }} style={{ fontSize:'0.55rem', padding:'3px 10px' }}>
-                  <Cpu size={11} /> Solve LP
-                </button>
-              </div>
-            ) : (
-              <div style={{ color:'var(--text-muted)', fontFamily:'var(--font-mono)', fontSize:'0.62rem', textAlign:'center', padding:'0.6rem 0.2rem' }}>
-                Compute Nash first.
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
