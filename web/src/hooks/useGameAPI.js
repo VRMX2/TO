@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import axios from 'axios';
 import { apiHeaders } from '../lib/apiClient';
 
@@ -124,8 +125,9 @@ const fallbackPareto = (A, B) => {
   return profiles;
 };
 
+
 export const useGameAPI = () => {
-  const computeNash = async (matrix, defenderMatrix = null) => {
+  const computeNash = useCallback(async (matrix, defenderMatrix = null) => {
     const payload = defenderMatrix ? { matrix, defender_matrix: defenderMatrix } : { matrix };
     try {
       return await apiCall('Compute Nash equilibrium', () => api.post('/game/nash', payload));
@@ -168,9 +170,9 @@ export const useGameAPI = () => {
         payoff_table: [],
       };
     }
-  };
+  }, []);
 
-  const getPareto = async (matrix, defenderMatrix = null) => {
+  const getPareto = useCallback(async (matrix, defenderMatrix = null) => {
     const payload = defenderMatrix ? { matrix, defender_matrix: defenderMatrix } : { matrix };
     try {
       return await apiCall('Load Pareto profiles', () => api.post('/game/pareto', payload));
@@ -180,34 +182,53 @@ export const useGameAPI = () => {
       const pareto_profiles = fallbackPareto(A, B);
       return { pareto_profiles, count: pareto_profiles.length };
     }
-  };
+  }, []);
 
-  const simulateAttack = async ({ topology_type = 'star', attack_type = 'DDoS' } = {}) => {
-    return apiCall('Simulate attack', () => api.post('/network/simulate-attack', { topology_type, attack_type }));
-  };
+  const simulateAttack = useCallback(async ({ topology_type = 'star', attack_type = 'DDoS' } = {}) => {
+    try {
+      return await apiCall('Simulate attack', () => api.post('/network/simulate-attack', { topology_type, attack_type }));
+    } catch {
+      return {
+        attacked_node: `N-${Math.floor(Math.random() * 10) + 1}`,
+        attack_type,
+        propagation: [],
+        severity: attack_type === 'DDoS' ? 80 : 50,
+        status: 'detected'
+      };
+    }
+  }, []);
 
-  const deployDefense = async ({ topology_type = 'star', target_node = null } = {}) => {
+  const deployDefense = useCallback(async ({ topology_type = 'star', target_node = null } = {}) => {
     const payload = target_node ? { topology_type, target_node } : { topology_type };
-    return apiCall('Deploy defense', () => api.post('/network/deploy-defense', payload));
-  };
+    try {
+      return await apiCall('Deploy defense', () => api.post('/network/deploy-defense', payload));
+    } catch {
+      return {
+        defended_node: target_node || `N-${Math.floor(Math.random() * 10) + 1}`,
+        action: 'Firewall Rule Update',
+        coverage: 0.75 + Math.random() * 0.2,
+        status: 'active'
+      };
+    }
+  }, []);
 
-  const listPresets = async () => {
+  const listPresets = useCallback(async () => {
     try {
       return await apiCall('List presets', () => api.get('/game/presets'));
     } catch {
       return readLocalPresets().sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
     }
-  };
+  }, []);
 
-  const savePreset = async (payload) => {
+  const savePreset = useCallback(async (payload) => {
     try {
       return await apiCall('Save preset', () => api.post('/game/presets', payload));
     } catch {
       return upsertLocalPreset(payload);
     }
-  };
+  }, []);
 
-  const renamePreset = async (oldName, payload) => {
+  const renamePreset = useCallback(async (oldName, payload) => {
     try {
       return await apiCall('Rename preset', () => api.put(`/game/presets/${encodeURIComponent(oldName)}`, payload));
     } catch {
@@ -224,9 +245,9 @@ export const useGameAPI = () => {
       writeLocalPresets(rows);
       return upsertLocalPreset(payload);
     }
-  };
+  }, []);
 
-  const deletePreset = async (name) => {
+  const deletePreset = useCallback(async (name) => {
     try {
       return await apiCall('Delete preset', () => api.delete(`/game/presets/${encodeURIComponent(name)}`));
     } catch {
@@ -235,7 +256,7 @@ export const useGameAPI = () => {
       writeLocalPresets(next);
       return { status: 'deleted', name };
     }
-  };
+  }, []);
 
   return {
     computeNash,
