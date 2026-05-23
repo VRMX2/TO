@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import AppLayout from '../components/ui/AppLayout';
 import PageHero from '../components/ui/PageHero';
-import { Target, RefreshCw, ChevronDown, ChevronUp, Info } from 'lucide-react';
+import { Target, RefreshCw, ChevronDown, ChevronUp, Info, Cpu } from 'lucide-react';
 import { useI18n } from '../i18n/I18nProvider';
 import { useGameStore } from '../store/gameStore';
+import { useGameAPI } from '../hooks/useGameAPI';
 
 /* ─── Pure Nash Equilibrium (saddle point) ─── */
 function findPureNash(matrix) {
@@ -74,6 +75,9 @@ export default function Analysis() {
   const defenderNames = t('common.defenseStrategies') || [];
   const matrix = useGameStore(state => state.payoffMatrix);
   const setMatrix = useGameStore(state => state.setPayoffMatrix);
+  const { solveLP } = useGameAPI();
+  const [lpResult, setLpResult] = useState(null);
+  const [lpLoading, setLpLoading] = useState(false);
   const [editCell, setEditCell] = useState(null);
   const [editVal, setEditVal] = useState('');
   const [showInfo, setShowInfo] = useState({ pure: true, mixed: true, pareto: true });
@@ -257,10 +261,6 @@ export default function Analysis() {
                 ))}
               </div>
             </Panel>
-          </div>
-
-          {/* RIGHT COLUMN */}
-          <div className="page-transition delay-3" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             {/* Pure Nash Table */}
             <Panel color="amber" title={t('analysis.pureTitle')} badge={pureNash.length === 0 ? t('analysis.noneFound') : `${pureNash.length} ${t('analysis.found')}`}>
@@ -303,6 +303,174 @@ export default function Analysis() {
                 </table>
               )}
             </Panel>
+
+            {/* LP Centralized Optimization */}
+            <Panel color="purple" title="LP CENTRALIZED OPT." badge={lpResult ? `v* = ${lpResult.game_value}` : ''}>
+              <div style={{ marginBottom:'0.5rem', display:'flex', gap:'0.5rem', alignItems:'center' }}>
+                <button className="btn btn-cyan" onClick={async () => {
+                  setLpLoading(true);
+                  try {
+                    const res = await solveLP(matrix);
+                    setLpResult(res);
+                  } catch { setLpResult(null); }
+                  setLpLoading(false);
+                }} disabled={lpLoading}>
+                  <Cpu size={12} /> {lpLoading ? 'Solving...' : 'Solve via LP'}
+                </button>
+                {lpResult && <span className="font-mono" style={{ fontSize:'0.58rem', color:'var(--accent-green)' }}>Status: {lpResult.status}</span>}
+              </div>
+              {lpResult && (
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0.75rem' }}>
+                  <div>
+                    <div className="font-mono text-red" style={{ fontSize:'0.55rem', marginBottom:'0.3rem' }}>Optimal Attacker σ*</div>
+                    {lpResult.optimal_attacker_strategy.map((prob, i) => (
+                      <div key={i} style={{ display:'flex', alignItems:'center', gap:5, marginBottom:'0.25rem' }}>
+                        <span className="font-mono text-muted" style={{ width:18, fontSize:'0.55rem' }}>A{i+1}</span>
+                        <div style={{ flex:1, height:4, background:'rgba(255,255,255,0.1)', borderRadius:2 }}>
+                          <div style={{ width:`${prob * 100}%`, height:'100%', background:'var(--accent-red)', borderRadius:2 }} />
+                        </div>
+                        <span className="font-mono" style={{ width:35, fontSize:'0.55rem', textAlign:'right', color:'var(--text-secondary)' }}>{(prob * 100).toFixed(1)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <div className="font-mono text-cyan" style={{ fontSize:'0.55rem', marginBottom:'0.3rem' }}>Optimal Defender σ*</div>
+                    {lpResult.optimal_defender_strategy.map((prob, i) => (
+                      <div key={i} style={{ display:'flex', alignItems:'center', gap:5, marginBottom:'0.25rem' }}>
+                        <span className="font-mono text-muted" style={{ width:18, fontSize:'0.55rem' }}>D{i+1}</span>
+                        <div style={{ flex:1, height:4, background:'rgba(255,255,255,0.1)', borderRadius:2 }}>
+                          <div style={{ width:`${prob * 100}%`, height:'100%', background:'var(--accent-cyan)', borderRadius:2 }} />
+                        </div>
+                        <span className="font-mono" style={{ width:35, fontSize:'0.55rem', textAlign:'right', color:'var(--text-secondary)' }}>{(prob * 100).toFixed(1)}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {!lpResult && (
+                <div className="font-mono text-muted" style={{ fontSize:'0.6rem', textAlign:'center', padding:'0.5rem' }}>
+                  Click "Solve via LP" to compare with support enumeration
+                </div>
+              )}
+            </Panel>
+
+            {/* Network Game Models */}
+            <Panel color="amber" title="NETWORK GAME MODELS">
+              {(() => {
+                const models = {
+                  congestion: {
+                    label: 'Congestion Control',
+                    desc: 'Row = path chosen by flow. Col = traffic level set by network. Payoff = -delay. Player wants to minimize delay (maximize negative). Pure Nash = Wardrop equilibrium — all used paths have equal minimal delay.',
+                    long: [
+                      'Path A / Low traffic: −5 (lowest delay, best for player)',
+                      'Path A / High traffic: −8 (congestion, high delay)',
+                      'Path B / Low traffic: −6 (slightly worse than Path A)',
+                      'Path B / High traffic: −3 (unusual: Path B handles load better)',
+                      'Pure NE at (B, High) since −3 is column max (attacker) and row min (defender).',
+                    ],
+                    matrix: [[-5,-8],[-6,-3]],
+                    rows: ['Path A', 'Path B'], cols: ['Low traffic', 'High traffic'],
+                  },
+                  routing: {
+                    label: 'Routing',
+                    desc: 'Row = route chosen by source node. Col = link condition set by environment. Payoff = throughput (higher is better). Mixed Nash = randomized routing to avoid predictability.',
+                    long: [
+                      'Route A / Short path: +4 (fast direct route when available)',
+                      'Route A / Reliable path: +1 (A is slow on reliable links)',
+                      'Route B / Short path: +2 (B is moderately fast on short)',
+                      'Route B / Reliable path: +3 (B keeps good throughput on reliable links)',
+                      'No pure NE — player randomizes between A (short) and B (reliable).',
+                    ],
+                    matrix: [[4,1],[2,3]],
+                    rows: ['Route A', 'Route B'], cols: ['Short path', 'Reliable path'],
+                  },
+                  bandwidth: {
+                    label: 'Bandwidth Allocation',
+                    desc: 'Row = bandwidth request size. Col = network admission decision. Payoff = utility (throughput satisfaction) − cost of request. Nash = fair bandwidth share under congestion.',
+                    long: [
+                      'High req. / Allocated: +3 (gets what it wants, high utility)',
+                      'High req. / Rejected: 0 (wasted request, zero payoff)',
+                      'Low req. / Allocated: 0 (gets less than needed, utility = cost)',
+                      'Low req. / Rejected: +2 (conservative request saved energy)',
+                      'Pure NE at (High, Allocated): +3 column max AND row min.',
+                    ],
+                    matrix: [[3,0],[0,2]],
+                    rows: ['High req.', 'Low req.'], cols: ['Allocated', 'Rejected'],
+                  },
+                  spectrum: {
+                    label: 'Spectrum Auction',
+                    desc: 'Row = bid level. Col = auction outcome. Payoff = revenue from won spectrum − bid price. Nash = equilibrium bid in a sealed-bid auction (FCC-style).',
+                    long: [
+                      'Bid high / Win band: +2 (wins spectrum at high cost, net small profit)',
+                      'Bid high / Lose band: −1 (paid bid but got nothing)',
+                      'Bid low / Win band: −3 (wins by chance but capacity insufficient, negative profit)',
+                      'Bid low / Lose band: +4 (kept budget, no loss)',
+                      'Pure NE at (High, Win): +2 — both mutual best-response.',
+                    ],
+                    matrix: [[2,-1],[-3,4]],
+                    rows: ['Bid high', 'Bid low'], cols: ['Win band', 'Lose band'],
+                  },
+                  coalition: {
+                    label: 'Coalition Formation',
+                    desc: 'Row = sensor node strategy (join or defect from coalition). Col = other nodes\' collective behavior. Payoff = energy saved by cooperative data fusion minus communication overhead.',
+                    long: [
+                      'Join / Cooperate: +5 (everyone shares data, max energy saving)',
+                      'Join / Compete: +2 (node shares but others compete, modest saving)',
+                      'Defect / Cooperate: +3 (free-ride on others\' data, some saving)',
+                      'Defect / Compete: +6 (no sharing overhead, best individual payoff)',
+                      'BUT if everyone defects, system collapses — Pareto optimal is (Join, Cooperate).',
+                    ],
+                    matrix: [[5,2],[3,6]],
+                    rows: ['Join', 'Defect'], cols: ['Cooperate', 'Compete'],
+                  },
+                };
+                const [activeModel, setActiveModel] = useState('congestion');
+                const m = models[activeModel];
+                return (
+                  <div>
+                    <div style={{ display:'flex', gap:'0.25rem', marginBottom:'0.5rem', flexWrap:'wrap' }}>
+                      {Object.entries(models).map(([k, v]) => (
+                        <button key={k} onClick={() => setActiveModel(k)}
+                          style={{ padding:'2px 8px', borderRadius:4, fontFamily:'var(--font-mono)', fontSize:'0.52rem', cursor:'pointer', background: activeModel === k ? 'rgba(0,240,255,0.15)' : 'rgba(255,255,255,0.04)', border:`1px solid ${activeModel === k ? 'rgba(0,240,255,0.4)' : 'rgba(255,255,255,0.08)'}`, color: activeModel === k ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>
+                          {v.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="font-mono" style={{ fontSize:'0.58rem', color:'var(--text-secondary)', margin:'0 0 0.5rem 0', lineHeight:1.5 }}>{m.desc}</p>
+                    <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'0.6rem' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ padding:'2px 6px', color:'var(--text-muted)', borderBottom:'1px solid rgba(255,255,255,0.06)', textAlign:'left' }}></th>
+                          {m.cols.map((c, i) => <th key={i} style={{ padding:'2px 6px', color:'var(--accent-cyan)', borderBottom:'1px solid rgba(255,255,255,0.06)', textAlign:'center' }}>{c}</th>)}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {m.matrix.map((row, r) => (
+                          <tr key={r}>
+                            <td style={{ padding:'2px 6px', color:'var(--accent-red)', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>{m.rows[r]}</td>
+                            {row.map((v, c) => (
+                              <td key={c} style={{ padding:'2px 6px', textAlign:'center', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+                                <span className="font-mono" style={{ color: v > 0 ? 'var(--accent-cyan)' : v < 0 ? 'var(--accent-red)' : 'var(--text-muted)' }}>{v > 0 ? `+${v}` : v}</span>
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div style={{ marginTop:'0.5rem', display:'flex', flexDirection:'column', gap:'0.2rem' }}>
+                      {m.long.map((line, i) => (
+                        <span key={i} className="font-mono" style={{ fontSize:'0.5rem', color:'var(--text-muted)', lineHeight:1.5 }}>• {line}</span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </Panel>
+
+          </div>
+
+          {/* RIGHT COLUMN */}
+          <div className="page-transition delay-3" style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
             {/* Mixed Nash Table */}
             <Panel color="cyan" title={t('analysis.mixedTitle')} badge={t('analysis.mixedBadge')}>
@@ -403,6 +571,7 @@ export default function Analysis() {
             </Panel>
 
           </div>
+
         </div>
       </div>
     </AppLayout>

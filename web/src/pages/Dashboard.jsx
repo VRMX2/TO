@@ -3,16 +3,15 @@ import Header from '../components/Header';
 import MatrixEditor from '../components/dashboard/MatrixEditor';
 import PresetManager from '../components/dashboard/PresetManager';
 import ExportPanel from '../components/dashboard/ExportPanel';
+
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useI18n } from '../i18n/I18nProvider';
 import { useGameStore } from '../store/gameStore';
 import { useGameAPI } from '../hooks/useGameAPI';
 import { jsPDF } from 'jspdf';
 import { Target, Shield, Zap, Activity, RefreshCw, Cpu, TrendingUp, AlertTriangle } from 'lucide-react';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine
-} from 'recharts';
 import MetricsStrip from '../components/ui/MetricsStrip';
+import TopologyGraph from '../components/TopologyGraph';
 
 export default function Dashboard() {
   const { t } = useI18n();
@@ -36,6 +35,9 @@ export default function Dashboard() {
   const {
     computeNash,
     getPareto,
+    solveLP,
+    fictitiousPlay,
+    computeRegret,
     listPresets,
     savePreset: savePresetApi,
     renamePreset,
@@ -55,12 +57,18 @@ export default function Dashboard() {
   const [defenseResult, setDefenseResult] = useState(null);
   const [paretoData, setParetoData] = useState([]);
   const [matrixSize, setMatrixSize] = useState(payoffMatrix.length || 4);
-  const defenderMatrix = payoffMatrix.map((row) => row.map((v) => -v));
+  const [gameMode, setGameMode] = useState('zero-sum');
+  const [defenderGeneralMatrix, setDefenderGeneralMatrix] = useState(null);
+  const defenderMatrix = gameMode === 'general-sum'
+    ? (defenderGeneralMatrix || payoffMatrix.map(r => r.map(() => 0)))
+    : payoffMatrix.map((row) => row.map((v) => -v));
   const [presetName, setPresetName] = useState('scenario-1');
   const [savedPresets, setSavedPresets] = useState([]);
   const [selectedPreset, setSelectedPreset] = useState('');
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const importInputRef = useRef(null);
+
+
 
   const resizeMatrix = useCallback((matrix, size) => (
     Array.from({ length: size }, (_, i) =>
@@ -69,6 +77,15 @@ export default function Dashboard() {
   ), []);
 
   const updateCell = useCallback((setter, matrix, r, c, value) => {
+    const numeric = Number(value);
+    setter(
+      matrix.map((row, i) =>
+        row.map((cell, j) => (i === r && j === c ? (Number.isFinite(numeric) ? numeric : 0) : cell))
+      )
+    );
+  }, []);
+
+  const updateDefCell = useCallback((setter, matrix, r, c, value) => {
     const numeric = Number(value);
     setter(
       matrix.map((row, i) =>
@@ -102,9 +119,12 @@ export default function Dashboard() {
   const currentScenarioPayload = useCallback(() => ({
     name: presetName || `scenario-${Date.now()}`,
     matrix_size: matrixSize,
+    game_mode: gameMode,
     attacker_matrix: payoffMatrix,
-    defender_matrix: payoffMatrix.map((row) => row.map((v) => -v)),
-  }), [presetName, matrixSize, payoffMatrix]);
+    defender_matrix: gameMode === 'general-sum'
+      ? (defenderGeneralMatrix || payoffMatrix.map(r => r.map(() => 0)))
+      : payoffMatrix.map((row) => row.map((v) => -v)),
+  }), [presetName, matrixSize, payoffMatrix, gameMode, defenderGeneralMatrix]);
 
   const savePreset = useCallback(async () => {
     try {
@@ -260,7 +280,10 @@ export default function Dashboard() {
       ]);
       setNashData(data);
       setParetoData(pareto?.pareto_profiles || []);
-      setConvergenceData(data.convergence_data || []);
+      const fpData = fictitiousPlay(currentPayoff, 200);
+      setConvergenceData(fpData);
+      const regret = computeRegret(currentPayoff, data.attacker_strategy, data.defender_strategy);
+      addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: `ε-Nash = ${regret.epsilonNash} · Att. regret = ${regret.attackerRegret} · Def. regret = ${regret.defenderRegret}`, color: 'secondary' });
       // Update strategy probabilities in store
       const attStrategies = attackNames;
       const defStrategies = defenseNames;
@@ -381,7 +404,7 @@ export default function Dashboard() {
           <ConfigSelect label={t('dashboard.scenario')} value={scenario} onChange={setScenario}
             options={[['standard','Standard 4×4'],['zero-sum','Zero-Sum'],['advanced','Advanced APT']]} />
           <ConfigSelect label={t('dashboard.topology')} value={topology} onChange={setTopology}
-            options={[['star','Star Network'],['mesh','Mesh Network'],['ring','Ring Network']]} />
+            options={[['star','Star Network'],['mesh','Mesh Network'],['ring','Ring Network'],['tree','Tree Network']]} />
           <ConfigSelect label={t('dashboard.aiMode')} value={aiMode} onChange={setAiMode}
             options={[['rl','Reinforcement Learning'],['static','Static Optimal'],['none','Disabled']]} />
         </div>
@@ -496,32 +519,22 @@ export default function Dashboard() {
 
       {/* Center Content */}
       <div className="main-content page-transition delay-3">
-        {/* Convergence Chart */}
+        {/* Network Topology */}
         <div className="panel" style={{ flex: 1.5 }}>
           <div className="panel-header">
-            <div className="panel-title"><TrendingUp size={14} />NASH CONVERGENCE</div>
-            <span style={{ fontSize:'0.6rem', fontFamily:'var(--font-mono)', color:'var(--text-muted)' }}>Fictitious Play → Equilibrium</span>
+            <div className="panel-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>NETWORK TOPOLOGY — {topology.toUpperCase()}</div>
+            <span style={{ fontSize:'0.6rem', fontFamily:'var(--font-mono)', color:'var(--text-muted)' }}>{['star','Star Network','mesh','Mesh Network','ring','Ring Network','tree','Tree Network'][['star','mesh','ring','tree'].indexOf(topology) * 2 + 1]}</span>
           </div>
-          <div style={{ flex:1, minHeight:220 }}>
-            {convergenceData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={convergenceData} margin={{ top:5, right:15, left:-20, bottom:5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                  <XAxis dataKey="iteration" stroke="var(--text-muted)" tick={{ fontSize:9, fill:'var(--text-muted)' }} />
-                  <YAxis stroke="var(--text-muted)" tick={{ fontSize:9, fill:'var(--text-muted)' }} domain={[0, 10]} />
-                  <Tooltip contentStyle={{ background:'#0a0e17', border:'1px solid rgba(0,240,255,0.2)', borderRadius:4, fontFamily:'var(--font-mono)', fontSize:11 }} />
-                  <ReferenceLine y={Math.abs(gameValue)} stroke="var(--accent-amber)" strokeDasharray="4 3" strokeWidth={1}
-                    label={{ value:'v*', position:'right', fill:'var(--accent-amber)', fontSize:9 }} />
-                  <Line type="monotone" dataKey="attacker" stroke="#00f0ff" strokeWidth={2} dot={false} name="Attacker" />
-                  <Line type="monotone" dataKey="defender" stroke="#ff3b30" strokeWidth={2} dot={false} name="Defender" />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', color:'var(--text-muted)', fontFamily:'var(--font-mono)', fontSize:'0.7rem' }}>
-                {loading.nash ? '⟳ Computing equilibrium...' : 'Click "Compute Nash" to load convergence data'}
-              </div>
-            )}
+          <div style={{ flex:1, minHeight:260 }}>
+            <TopologyGraph topology={topology} />
           </div>
+          {nashData && (
+            <div style={{ padding:'0.3rem 0.6rem', borderTop:'1px solid rgba(255,255,255,0.05)', marginTop:'0.3rem' }}>
+              <span className="font-mono" style={{ fontSize:'0.5rem', color:'var(--accent-amber)' }}>
+                ★ v* = {gameValue.toFixed(3)} · {nashData.equilibria?.length || 0} equilibria
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Status Cards Row */}
@@ -652,6 +665,11 @@ export default function Dashboard() {
             payoffMatrix={payoffMatrix}
             updateCell={updateCell}
             setPayoffMatrix={setPayoffMatrix}
+            gameMode={gameMode}
+            onGameModeChange={setGameMode}
+            defenderMatrix={defenderGeneralMatrix}
+            setDefenderMatrix={setDefenderGeneralMatrix}
+            updateDefCell={updateDefCell}
           />
         </div>
 
@@ -710,6 +728,29 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+
+          {/* LP Solver */}
+          <div className="panel">
+            <div className="panel-header">
+              <div className="panel-title"><Cpu size={14} />LP CENTRALIZED OPT.</div>
+            </div>
+            {nashData ? (
+              <div style={{ textAlign:'center', padding:'0.4rem' }}>
+                <button className="btn btn-cyan" onClick={async () => {
+                  try {
+                    const res = await solveLP(payoffMatrix);
+                    addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: `LP solve: v* = ${res.game_value} · Att: [${res.optimal_attacker_strategy.map(p => (p * 100).toFixed(0) + '%').join(', ')}] · Def: [${res.optimal_defender_strategy.map(p => (p * 100).toFixed(0) + '%').join(', ')}]`, color: 'cyan' });
+                  } catch { addAILog({ time: new Date().toLocaleTimeString('en-US', { hour12: false }), text: 'LP solve failed', color: 'red' }); }
+                }} style={{ fontSize:'0.55rem', padding:'3px 10px' }}>
+                  <Cpu size={11} /> Solve LP
+                </button>
+              </div>
+            ) : (
+              <div style={{ color:'var(--text-muted)', fontFamily:'var(--font-mono)', fontSize:'0.62rem', textAlign:'center', padding:'0.6rem 0.2rem' }}>
+                Compute Nash first.
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

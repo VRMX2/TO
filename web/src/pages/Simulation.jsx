@@ -6,6 +6,7 @@ import { useGameAPI } from '../hooks/useGameAPI';
 import { useGameStore } from '../store/gameStore';
 import { useI18n } from '../i18n/I18nProvider';
 import { apiHeaders } from '../lib/apiClient';
+import BandwidthGame from '../components/BandwidthGame';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ReferenceLine, ResponsiveContainer
 } from 'recharts';
@@ -291,7 +292,6 @@ export default function Simulation() {
         round: roundNum,
         attacker: parseFloat((payoff > 0 ? payoff : 0).toFixed(2)),
         defender: parseFloat((payoff < 0 ? Math.abs(payoff) : 0).toFixed(2)),
-        nashLine: parseFloat(Math.abs(nashV).toFixed(2)),
       }
     ]);
 
@@ -537,8 +537,8 @@ export default function Simulation() {
                     <YAxis stroke="var(--text-muted)" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} domain={[0, 10]} />
                     <Tooltip contentStyle={{ background: '#0a0e17', border: '1px solid rgba(0,240,255,0.2)', borderRadius: 4, fontFamily: 'var(--font-mono)', fontSize: 11 }} />
                     <ReferenceLine y={Math.abs(nashV)} stroke="var(--accent-amber)" strokeDasharray="4 3" strokeWidth={1} label={{ value: 'v*', position: 'right', fill: 'var(--accent-amber)', fontSize: 9 }} />
-                    <Line type="monotone" dataKey="attacker" stroke="#00f0ff" strokeWidth={2} dot={false} name="Attacker" />
-                    <Line type="monotone" dataKey="defender" stroke="#ff3b30" strokeWidth={2} dot={false} name="Defender" />
+                    <Line type="monotone" dataKey="attacker" stroke="#ff3b30" strokeWidth={2} dot={false} name="Attacker" />
+                    <Line type="monotone" dataKey="defender" stroke="#00f0ff" strokeWidth={2} dot={false} name="Defender" />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -587,10 +587,10 @@ export default function Simulation() {
                         <td style={{ padding: '3px 6px', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>{h.round}</td>
                         <td style={{ padding: '3px 6px', color: 'var(--accent-red)' }}>{h.att}</td>
                         <td style={{ padding: '3px 6px', color: 'var(--accent-cyan)' }}>{h.def}</td>
-                        <td style={{ padding: '3px 6px', fontFamily: 'var(--font-mono)', color: h.payoff > 0 ? 'var(--accent-red)' : h.payoff < 0 ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>{h.payoff > 0 ? '+' : ''}{h.payoff}</td>
+                        <td style={{ padding: '3px 6px', fontFamily: 'var(--font-mono)', color: h.payoff > 0 ? 'var(--accent-red)' : h.payoff < 0 ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>{h.payoff > 0 ? '-' : h.payoff < 0 ? '+' : ''}{Math.abs(h.payoff)}</td>
                         <td style={{ padding: '3px 6px' }}>
                           {h.payoff > 0 ? <span style={{ fontSize: '0.52rem', color: 'var(--accent-red)', fontFamily: 'var(--font-mono)' }}>{t('simulation.resultAtt')}</span>
-                            : h.payoff < 0 ? <span style={{ fontSize: '0.52rem', color: 'var(--accent-green)', fontFamily: 'var(--font-mono)' }}>{t('simulation.resultDef')}</span>
+                            : h.payoff < 0 ? <span style={{ fontSize: '0.52rem', color: 'var(--accent-cyan)', fontFamily: 'var(--font-mono)' }}>{t('simulation.resultDef')}</span>
                               : <span style={{ fontSize: '0.52rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>{t('simulation.resultTie')}</span>}
                         </td>
                       </tr>
@@ -710,9 +710,9 @@ export default function Simulation() {
                         <div style={{ fontSize: '0.58rem', color: 'var(--text-secondary)' }}>{getDefenseNameById(last.def)}</div>
                         <div className="text-muted font-mono" style={{ fontSize: '0.52rem', marginTop: 4 }}>σ*: {(nashQ[DEFENSE_STRATEGIES.indexOf(defS)] * 100).toFixed(1)}%</div>
                       </div>
-                      <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '0.5rem', background: last.payoff > 0 ? 'rgba(255,59,48,0.07)' : last.payoff < 0 ? 'rgba(0,255,102,0.07)' : 'rgba(255,255,255,0.03)', borderRadius: 5, border: `1px solid ${last.payoff > 0 ? 'rgba(255,59,48,0.25)' : last.payoff < 0 ? 'rgba(0,255,102,0.25)' : 'rgba(255,255,255,0.07)'}` }}>
+                      <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '0.5rem', background: last.payoff > 0 ? 'rgba(255,59,48,0.07)' : last.payoff < 0 ? 'rgba(0,240,255,0.07)' : 'rgba(255,255,255,0.03)', borderRadius: 5, border: `1px solid ${last.payoff > 0 ? 'rgba(255,59,48,0.25)' : last.payoff < 0 ? 'rgba(0,240,255,0.25)' : 'rgba(255,255,255,0.07)'}` }}>
                         <span className="font-mono" style={{ fontSize: '0.62rem', color: 'var(--text-muted)' }}>{t('simulation.payoffUA')} </span>
-                        <span className="font-mono" style={{ fontSize: '1.1rem', color: last.payoff > 0 ? 'var(--accent-red)' : last.payoff < 0 ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>{last.payoff > 0 ? '+' : ''}{last.payoff}</span>
+                        <span className="font-mono" style={{ fontSize: '1.1rem', color: last.payoff > 0 ? 'var(--accent-red)' : last.payoff < 0 ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>{last.payoff > 0 ? '-' : last.payoff < 0 ? '+' : ''}{Math.abs(last.payoff)}</span>
                       </div>
                     </div>
                   );
@@ -722,6 +722,8 @@ export default function Simulation() {
           </div>
         </div>
       </div>
+
+      <BandwidthGame />
 
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}`}</style>
     </AppLayout>

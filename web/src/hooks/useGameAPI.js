@@ -125,6 +125,60 @@ const fallbackPareto = (A, B) => {
   return profiles;
 };
 
+const solveLP = async (matrix) => {
+  try {
+    return await apiCall('Solve LP', () => api.post('/game/lp-solve', { matrix }));
+  } catch {
+    const m = matrix.length, n = matrix[0].length;
+    const p = Array(m).fill(1 / m);
+    const q = Array(n).fill(1 / n);
+    const value = p.reduce((s, pi, i) => s + q.reduce((ss, qj, j) => ss + pi * qj * matrix[i][j], 0), 0);
+    return {
+      optimal_attacker_strategy: p.map(v => Number(v.toFixed(3))),
+      optimal_defender_strategy: q.map(v => Number(v.toFixed(3))),
+      game_value: Number(value.toFixed(2)),
+      status: 'fallback'
+    };
+  }
+};
+
+const computeRegret = (A, p, q) => {
+  const m = A.length, n = A[0].length;
+  const uA = p.reduce((s, pi, i) => s + q.reduce((ss, qj, j) => ss + pi * qj * A[i][j], 0), 0);
+  const bestResponseAtt = Math.max(...Array.from({ length: m }, (_, i) =>
+    q.reduce((s, qj, j) => s + qj * A[i][j], 0)));
+  const bestResponseDef = Math.min(...Array.from({ length: n }, (_, c) =>
+    p.reduce((s, pi, i) => s + pi * A[i][c], 0)));
+  return {
+    attackerRegret: Number((bestResponseAtt - uA).toFixed(4)),
+    defenderRegret: Number((bestResponseDef - (-uA)).toFixed(4)),
+    epsilonNash: Number(Math.max(bestResponseAtt - uA, Math.abs(bestResponseDef - (-uA))).toFixed(4)),
+  };
+};
+
+const fictitiousPlay = (A, iterations = 200) => {
+  const m = A.length, n = A[0].length;
+  let pCount = Array(m).fill(1);
+  let qCount = Array(n).fill(1);
+  const data = [];
+  for (let t = 0; t < iterations; t++) {
+    const p = pCount.map(c => c / pCount.reduce((a, b) => a + b, 0));
+    const q = qCount.map(c => c / qCount.reduce((a, b) => a + b, 0));
+    const bestAtt = Array.from({ length: m }, (_, i) => q.reduce((s, qj, j) => s + qj * A[i][j], 0));
+    const bestDef = Array.from({ length: n }, (_, c) => p.reduce((s, pi, i) => s + pi * A[i][c], 0));
+    const attIdx = bestAtt.indexOf(Math.max(...bestAtt));
+    const defIdx = bestDef.indexOf(Math.min(...bestDef));
+    pCount[attIdx]++;
+    qCount[defIdx]++;
+    const uA = p.reduce((s, pi, i) => s + q.reduce((ss, qj, j) => ss + pi * qj * A[i][j], 0), 0);
+    const regret = computeRegret(A, p, q);
+    if (t % 2 === 0 || t === iterations - 1) {
+      data.push({ iteration: t, attacker: Number(uA.toFixed(4)), defender: Number((-uA).toFixed(4)), epsilonNash: regret.epsilonNash });
+    }
+  }
+  return data;
+};
+
 export const useGameAPI = () => {
   const computeNash = async (matrix, defenderMatrix = null) => {
     const payload = defenderMatrix ? { matrix, defender_matrix: defenderMatrix } : { matrix };
@@ -255,6 +309,9 @@ export const useGameAPI = () => {
   return useMemo(() => ({
     computeNash,
     getPareto,
+    solveLP,
+    fictitiousPlay,
+    computeRegret,
     simulateAttack,
     deployDefense,
     listPresets,

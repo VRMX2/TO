@@ -19,12 +19,14 @@ export const useGameStore = create((set) => ({
     { id: 'D4', name: 'Honey Pot', prob: 31 },
   ],
   
+  gameMode: 'zero-sum',
   payoffMatrix: [
     [5, 2, -1, 4],
     [4, 6, 8, 3],
     [-3, 1, 7, 2],
     [2, -2, 5, 0]
   ],
+  defenderPayoffMatrix: null, // only used in general-sum mode
   nashEquilibriumCell: { row: 1, col: 1 }, // A2, D2
   
   paretoOptima: [
@@ -85,6 +87,8 @@ export const useGameStore = create((set) => ({
   setThreatLevel: (level) => set((state) => ({ threatLevel: typeof level === 'function' ? level(state.threatLevel) : level })),
 
   setPayoffMatrix: (matrix) => set({ payoffMatrix: matrix }),
+  setGameMode: (mode) => set({ gameMode: mode }),
+  setDefenderPayoffMatrix: (matrix) => set({ defenderPayoffMatrix: matrix }),
 
   updateNashResults: ({ nashData, paretoData }) => set((state) => {
     // Merge backend data if available

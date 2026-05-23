@@ -182,16 +182,16 @@ readinessProbe:
 3. **Zero-Day Exploit**: Using unknown vulnerabilities (High cost, critical risk).
 4. **Phishing APT**: Advanced Persistent Threat via phishing (Low cost, low risk).
 
-### 💰 Payoff Matrix
-Values represent Defender Utility (Risk/Cost).
-Attacker aims to minimize this value.
+### 💰 Payoff Matrix (Attacker Utility)
+Zero-sum: defender utility = -attacker utility.
+Positive values → Defender advantage, Negative values → Attacker advantage.
 
 | Attacker \ Defender | Firewall | IDS | Patch System | Honey Pot |
 |---------------------|----------|-----|--------------|-----------|
-| SQLi                | 35       | 40  | 25           | 45        |
-| DDoS Flood          | 65       | 70  | 40           | 75        |
-| Zero-Day Exploit    | 80       | 85  | 50           | 90        |
-| Phishing APT        | 20       | 25  | 15           | 30        |
+| SQLi                | +5       | +2  | -1           | +4        |
+| DDoS Flood          | +4       | +6  | +8           | +3        |
+| Zero-Day Exploit    | -3       | +1  | +7           | +2        |
+| Phishing APT        | +2       | -2  | +5           | 0         |
 
 ### 🔄 Learning Loop
 In the **Learning Tab**, the AI agent:
