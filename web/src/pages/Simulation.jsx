@@ -199,6 +199,19 @@ export default function Simulation() {
   const { computeNash } = useGameAPI();
   const setMainPayoff = useGameStore(state => state.setPayoffMatrix);
   const [payoffMatrix, setPayoffMatrix] = useState([[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]);
+  const [editCell, setEditCell] = useState(null);
+  const [editVal, setEditVal] = useState('');
+
+  const handleCellClick = (r, c) => { setEditCell({ r, c }); setEditVal(String(payoffMatrix[r][c])); };
+
+  const commitEdit = () => {
+    if (!editCell) return;
+    const v = parseFloat(editVal);
+    if (!isNaN(v)) {
+      setPayoffMatrix(prev => prev.map((row, r) => row.map((cell, c) => r === editCell.r && c === editCell.c ? v : cell)));
+    }
+    setEditCell(null);
+  };
 
   const addLog = useCallback((text, color = 'secondary') => {
     const time = new Date().toLocaleTimeString('en-US', { hour12: false });
@@ -510,11 +523,24 @@ export default function Simulation() {
                     {payoffMatrix.map((row, r) => (
                       <tr key={r}>
                         <td style={{ padding:'3px 6px', color:'var(--accent-red)', borderBottom:'1px solid rgba(255,255,255,0.04)', fontSize:'0.55rem', lineHeight:1.3 }}>A{r+1}<br /><span style={{ fontSize:'0.45rem', fontWeight:400, color:'var(--text-muted)' }}>{getAttackNameByIndex(r)}</span></td>
-                        {row.map((val, c) => (
-                          <td key={c} style={{ padding:'3px 6px', textAlign:'center', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
-                            <span style={{ color: val > 0 ? 'var(--accent-cyan)' : val < 0 ? 'var(--accent-red)' : 'var(--text-muted)' }}>{val > 0 ? `+${val}` : val}</span>
-                          </td>
-                        ))}
+                        {row.map((val, c) => {
+                          const editing = editCell?.r === r && editCell?.c === c;
+                          const fg = val > 0 ? 'var(--accent-cyan)' : val < 0 ? 'var(--accent-red)' : 'var(--text-muted)';
+                          return (
+                            <td key={c} onClick={() => handleCellClick(r, c)}
+                              style={{ padding:'3px 6px', textAlign:'center', borderBottom:'1px solid rgba(255,255,255,0.04)', cursor:'pointer', minWidth:44 }}>
+                              {editing ? (
+                                <input autoFocus value={editVal}
+                                  onChange={e => setEditVal(e.target.value)}
+                                  onBlur={commitEdit}
+                                  onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditCell(null); }}
+                                  style={{ width:'100%', background:'transparent', border:'none', outline:'none', color:'inherit', textAlign:'center', fontFamily:'var(--font-mono)', fontSize:'0.88rem' }} />
+                              ) : (
+                                <span style={{ color: fg, fontFamily:'var(--font-mono)', fontSize:'0.88rem' }}>{val > 0 ? `+${val}` : val}</span>
+                              )}
+                            </td>
+                          );
+                        })}
                       </tr>
                     ))}
                   </tbody>
