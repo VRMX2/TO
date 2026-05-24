@@ -9,6 +9,9 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - DEBUG=true
+    volumes:
+      - pip-cache:/root/.cache/pip
+      - ./backend:/app
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
       interval: 30s
@@ -20,14 +23,18 @@ services:
     image: node:20-alpine
     container_name: cybergame-web
     working_dir: /app
-    volumes:
-      - ./web:/app
-      - /app/node_modules
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "5173:5173"
     environment:
       - VITE_API_PROXY_TARGET=http://backend:8000
       - VITE_API_KEY=${VITE_API_KEY:-}
-    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
-    ports:
-      - "5173:5173"
+    volumes:
+      - ./web:/app
+      - web-node-modules:/app/node_modules
     depends_on:
       - backend
+
+volumes:
+  pip-cache:
+  web-node-modules:

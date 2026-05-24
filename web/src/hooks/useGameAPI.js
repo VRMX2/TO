@@ -1,8 +1,12 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { useMemo } from 'react';
 =======
 import { useCallback } from 'react';
 >>>>>>> 222bf86 (new commit)
+=======
+import { useMemo, useCallback } from 'react';
+>>>>>>> e0b52136f470f8b44105c133b20eddfad18935db
 import axios from 'axios';
 import { apiHeaders } from '../lib/apiClient';
 
@@ -245,15 +249,23 @@ export const useGameAPI = () => {
   }, []);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
   const simulateAttack = async ({ topology_type = 'star', attack_type = 'DDoS' } = {}) => {
+=======
+  const simulateAttack = useCallback(async ({ topology_type = 'star', attack_type = 'DDoS' } = {}) => {
+>>>>>>> e0b52136f470f8b44105c133b20eddfad18935db
     try {
       return await apiCall('Simulate attack', () => api.post('/network/simulate-attack', { topology_type, attack_type }));
     } catch {
-      const nodes = ['GW-01', 'FW-02', 'SRV-03', 'IDS-04', 'HNY-05'];
-      const attacked = nodes[Math.floor(Math.random() * nodes.length)];
-      const severity = Math.floor(Math.random() * 40) + 10;
-      return { attacked_node: attacked, attack_type, propagation: nodes.filter(() => Math.random() > 0.6), severity, status: 'simulated' };
+      return {
+        attacked_node: `N-${Math.floor(Math.random() * 10) + 1}`,
+        attack_type,
+        propagation: [],
+        severity: attack_type === 'DDoS' ? 80 : 50,
+        status: 'detected'
+      };
     }
+<<<<<<< HEAD
   };
 =======
   const simulateAttack = useCallback(async ({ topology_type = 'star', attack_type = 'DDoS' } = {}) => {
@@ -270,12 +282,16 @@ export const useGameAPI = () => {
     }
   }, []);
 >>>>>>> 222bf86 (new commit)
+=======
+  }, []);
+>>>>>>> e0b52136f470f8b44105c133b20eddfad18935db
 
   const deployDefense = useCallback(async ({ topology_type = 'star', target_node = null } = {}) => {
     const payload = target_node ? { topology_type, target_node } : { topology_type };
     try {
       return await apiCall('Deploy defense', () => api.post('/network/deploy-defense', payload));
     } catch {
+<<<<<<< HEAD
 <<<<<<< HEAD
       const nodes = ['GW-01', 'FW-02', 'SRV-03', 'IDS-04', 'HNY-05'];
       const defended = target_node || nodes[Math.floor(Math.random() * nodes.length)];
@@ -293,6 +309,16 @@ export const useGameAPI = () => {
     }
   }, []);
 >>>>>>> 222bf86 (new commit)
+=======
+      return {
+        defended_node: target_node || `N-${Math.floor(Math.random() * 10) + 1}`,
+        action: 'Firewall Rule Update',
+        coverage: 0.75 + Math.random() * 0.2,
+        status: 'active'
+      };
+    }
+  }, []);
+>>>>>>> e0b52136f470f8b44105c133b20eddfad18935db
 
   const listPresets = useCallback(async () => {
     try {
