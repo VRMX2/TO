@@ -3,7 +3,30 @@
 [![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
 [![Docker Build Check](https://github.com/OWNER/REPO/actions/workflows/docker-build-check.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/docker-build-check.yml)
 
-CyberGameGT is an educational platform for demonstrating Game Theory and AI-driven Cyber Security defense strategies.
+> [!NOTE]
+> **Project Overview**: CyberGameGT is an educational platform designed to demonstrate the intersection of Game Theory and AI-driven Cyber Security defense strategies. It models a dynamic conflict between a network defender and an attacker.
+
+## Introduction
+
+CyberGameGT provides a simulated environment where cybersecurity defense mechanisms and attack vectors are modeled mathematically. By applying **Game Theory**, the platform calculates optimal strategies (Nash Equilibria) for securing an enterprise network against various threats. The system also features an AI learning loop to adapt strategies based on simulated behaviors.
+
+## System Architecture
+
+The application is built using a modern full-stack architecture, containerized for easy deployment and scalability.
+
+```mermaid
+graph TD
+    Client[Web Browser / Dashboard] -->|REST API| Nginx[Nginx Reverse Proxy]
+    Nginx --> Frontend[React / Vite Frontend]
+    Nginx --> Backend[Python FastAPI Backend]
+    Backend --> GameEngine[Game Theory Engine - NumPy/SciPy]
+```
+
+### Core Technologies:
+- **Frontend**: Node.js, React (Vite)
+- **Backend**: Python 3.8+, FastAPI
+- **Math/AI Engine**: NumPy & SciPy (used for computing mixed-strategy Nash Equilibria)
+- **Infrastructure**: Docker & Docker Compose
 
 ## 🔒 Security (v2.1)
 
@@ -166,9 +189,9 @@ readinessProbe:
   failureThreshold: 3
 ```
 
-## 🧩 Game Description
+## 🧩 Game Theory Model
 
-**Context**: A defender manages a small enterprise network. An attacker attempts to compromise it. The game repeats over rounds, modeling dynamic adaptation.
+**Context**: A defender manages a small enterprise network. An attacker attempts to compromise it. The game repeats over rounds, modeling dynamic adaptation. The core of the application models a **zero-sum game** where the Defender's utility is exactly the inverse of the Attacker's utility. 
 
 ### 🛡️ Defender Strategies
 1. **Firewall**: Static rule updates (Low cost, medium protection).
@@ -188,13 +211,18 @@ Positive values → Defender advantage, Negative values → Attacker advantage.
 
 | Attacker \ Defender | Firewall | IDS | Patch System | Honey Pot |
 |---------------------|----------|-----|--------------|-----------|
-| SQLi                | +5       | +2  | -1           | +4        |
-| DDoS Flood          | +4       | +6  | +8           | +3        |
-| Zero-Day Exploit    | -3       | +1  | +7           | +2        |
-| Phishing APT        | +2       | -2  | +5           | 0         |
+| **SQLi**            | +5       | +2  | -1           | +4        |
+| **DDoS Flood**      | +4       | +6  | +8           | +3        |
+| **Zero-Day Exploit**| -3       | +1  | +7           | +2        |
+| **Phishing APT**    | +2       | -2  | +5           | 0         |
 
-### 🔄 Learning Loop
-In the **Learning Tab**, the AI agent:
-1. Computes the Nash Equilibrium using the current payoff matrix.
-2. Simulates attacks and defenses to update threat levels.
-3. Learns to adapt strategies based on opponent behavior.
+> [!TIP]
+> **Nash Equilibrium & Learning Loop**
+> In the **Learning Tab**, the AI agent:
+> 1. Computes the mixed-strategy Nash Equilibrium using the current payoff matrix. This allows the AI to determine the statistically optimal mix of defenses to minimize the attacker's expected utility over time.
+> 2. Simulates attacks and defenses to update threat levels.
+> 3. Learns to adapt strategies based on opponent behavior.
+
+## 🎓 Conclusion
+
+CyberGameGT successfully bridges theoretical mathematics and practical cybersecurity. Through its interactive dashboard and AI-driven simulation, it serves as a powerful educational tool for understanding how strategic decision-making can fortify network defenses against adaptive threats.
