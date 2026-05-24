@@ -4,6 +4,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 import logging
 from datetime import datetime, timezone
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from .config import settings
 from .security import (

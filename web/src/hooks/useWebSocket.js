@@ -5,6 +5,7 @@ import { wsUrl } from '../lib/apiClient';
 export const useWebSocket = () => {
   const ws = useRef(null);
   const reconnectTimer = useRef(null);
+  const offlineMockTimer = useRef(null);
   const addAILog = useGameStore(state => state.addAILog);
   const setThreatLevel = useGameStore(state => state.setThreatLevel);
   const [connected, setConnected] = useState(false);
@@ -52,11 +53,33 @@ export const useWebSocket = () => {
           // Reconnect after 8 seconds with visible countdown.
           const delaySec = 8;
           setReconnectInSec(delaySec);
+
+          // Fallback offline mock stream — use recursive setTimeout for truly random delays
+          const fireOfflineMock = () => {
+            const attack_types = ['DDoS', 'SQLi', 'Zero-Day', 'Brute Force', 'Phishing', 'MitM'];
+            const statuses = ['detected', 'blocked', 'breached'];
+            const attack_type = attack_types[Math.floor(Math.random() * attack_types.length)];
+            const status = statuses[Math.floor(Math.random() * statuses.length)];
+            const severity = Math.floor(Math.random() * 65) + 30;
+            const target_node = `N-${Math.floor(Math.random() * 15) + 1}`;
+            setThreatLevel(prev => Math.min(100, Math.max(5, prev + (status === 'breached' ? 5 : status === 'detected' ? 1 : -2))));
+            const colorMap = { breached: 'red', detected: 'amber', blocked: 'green' };
+            addAILog({
+              time: new Date().toLocaleTimeString('en-US', { hour12: false }),
+              text: `[${status?.toUpperCase()}] ${attack_type} → ${target_node} (sev: ${severity}) [OFFLINE]`,
+              color: colorMap[status] || 'secondary'
+            });
+            offlineMockTimer.current = setTimeout(fireOfflineMock, Math.random() * 6000 + 4000);
+          };
+          offlineMockTimer.current = setTimeout(fireOfflineMock, Math.random() * 4000 + 2000);
+
           const countdown = setInterval(() => {
             setReconnectInSec((prev) => (prev > 0 ? prev - 1 : 0));
           }, 1000);
+
           reconnectTimer.current = setTimeout(() => {
             clearInterval(countdown);
+            clearTimeout(offlineMockTimer.current);
             connectWS();
           }, delaySec * 1000);
         };
@@ -82,6 +105,7 @@ export const useWebSocket = () => {
 
     return () => {
       clearTimeout(reconnectTimer.current);
+      clearTimeout(offlineMockTimer.current);
       ws.current?.close();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
