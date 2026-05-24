@@ -1,12 +1,4 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-import { useMemo } from 'react';
-=======
-import { useCallback } from 'react';
->>>>>>> 222bf86 (new commit)
-=======
 import { useMemo, useCallback } from 'react';
->>>>>>> e0b52136f470f8b44105c133b20eddfad18935db
 import axios from 'axios';
 import { apiHeaders } from '../lib/apiClient';
 
@@ -133,7 +125,6 @@ const fallbackPareto = (A, B) => {
   return profiles;
 };
 
-<<<<<<< HEAD
 const solveLP = async (matrix) => {
   try {
     return await apiCall('Solve LP', () => api.post('/game/lp-solve', { matrix }));
@@ -187,8 +178,6 @@ const fictitiousPlay = (A, iterations = 200) => {
   }
   return data;
 };
-=======
->>>>>>> 222bf86 (new commit)
 
 export const useGameAPI = () => {
   const computeNash = useCallback(async (matrix, defenderMatrix = null) => {
@@ -248,26 +237,6 @@ export const useGameAPI = () => {
     }
   }, []);
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-  const simulateAttack = async ({ topology_type = 'star', attack_type = 'DDoS' } = {}) => {
-=======
-  const simulateAttack = useCallback(async ({ topology_type = 'star', attack_type = 'DDoS' } = {}) => {
->>>>>>> e0b52136f470f8b44105c133b20eddfad18935db
-    try {
-      return await apiCall('Simulate attack', () => api.post('/network/simulate-attack', { topology_type, attack_type }));
-    } catch {
-      return {
-        attacked_node: `N-${Math.floor(Math.random() * 10) + 1}`,
-        attack_type,
-        propagation: [],
-        severity: attack_type === 'DDoS' ? 80 : 50,
-        status: 'detected'
-      };
-    }
-<<<<<<< HEAD
-  };
-=======
   const simulateAttack = useCallback(async ({ topology_type = 'star', attack_type = 'DDoS' } = {}) => {
     try {
       return await apiCall('Simulate attack', () => api.post('/network/simulate-attack', { topology_type, attack_type }));
@@ -281,25 +250,12 @@ export const useGameAPI = () => {
       };
     }
   }, []);
->>>>>>> 222bf86 (new commit)
-=======
-  }, []);
->>>>>>> e0b52136f470f8b44105c133b20eddfad18935db
 
   const deployDefense = useCallback(async ({ topology_type = 'star', target_node = null } = {}) => {
     const payload = target_node ? { topology_type, target_node } : { topology_type };
     try {
       return await apiCall('Deploy defense', () => api.post('/network/deploy-defense', payload));
     } catch {
-<<<<<<< HEAD
-<<<<<<< HEAD
-      const nodes = ['GW-01', 'FW-02', 'SRV-03', 'IDS-04', 'HNY-05'];
-      const defended = target_node || nodes[Math.floor(Math.random() * nodes.length)];
-      const actions = ['hardened firewall rules', 'deployed IDS signature update', 'patched vulnerability', 'activated honey pot'];
-      return { defended_node: defended, action: actions[Math.floor(Math.random() * actions.length)], coverage: Math.random() * 0.5 + 0.3, status: 'deployed' };
-    }
-  };
-=======
       return {
         defended_node: target_node || `N-${Math.floor(Math.random() * 10) + 1}`,
         action: 'Firewall Rule Update',
@@ -308,17 +264,6 @@ export const useGameAPI = () => {
       };
     }
   }, []);
->>>>>>> 222bf86 (new commit)
-=======
-      return {
-        defended_node: target_node || `N-${Math.floor(Math.random() * 10) + 1}`,
-        action: 'Firewall Rule Update',
-        coverage: 0.75 + Math.random() * 0.2,
-        status: 'active'
-      };
-    }
-  }, []);
->>>>>>> e0b52136f470f8b44105c133b20eddfad18935db
 
   const listPresets = useCallback(async () => {
     try {
